@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
+
+        <title>WebGL Fluid Simulation</title>
+
+        <style>
+            /* Reset básico para asegurar pantalla completa */
+            html, body {
+                overflow: hidden;
+                background-color: #000;
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+            }
+
+            /* El canvas debe ocupar toda la pantalla y estar fijo al fondo */
+            canvas {
+                width: 100%;
+                height: 100%;
+                display: block; /* Elimina scrollbars extraños */
+            }
+            
+            /* Opcional: Si quieres poner contenido encima del fluido */
+            .contenido-web {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none; /* DEJA PASAR EL CLICK/TOUCH AL FLUIDO */
+                z-index: 10;
+                color: white;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-family: sans-serif;
+            }
+            
+            /* Si quieres botones interactivos encima, reactiva los eventos */
+            .boton-interactivo {
+                pointer-events: auto;
+                background: rgba(255,255,255,0.2);
+                padding: 10px 20px;
+                border: 1px solid white;
+                cursor: pointer;
+            }
+        </style>
+        
+        <script type="text/javascript" src="dat.gui.min.js"></script>
+    </head>
+    <body>
+        <canvas></canvas>
+
+        <div class="contenido-web">
+            <div style="text-align: center;">
+                <h1>Tu Página Web</h1>
+                <p>Toca el fondo para ver el fluido</p>
+                <button class="boton-interactivo" onclick="alert('Hola')">Botón Web</button>
+            </div>
+        </div>
+
+        <script src="./script.js"></script>
+    </body>
+</html>

@@ -1,0 +1,42 @@
+{
+  "collectionName": "components_story_parts_text_groups",
+  "info": {
+    "displayName": "TextGroup",
+    "icon": "oneToMany"
+  },
+  "options": {},
+  "attributes": {
+    "icon": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "text_1": {
+      "type": "string"
+    },
+    "text_2": {
+      "type": "string"
+    },
+    "text_3": {
+      "type": "string"
+    },
+    "animation_type": {
+      "type": "enumeration",
+      "enum": [
+        "default-fade-in",
+        "nice-group-entry",
+        "icon-hand-float",
+        "typewriter",
+        "huge-pop",
+        "super-group",
+        "choreograph-group"
+      ]
+    }
+  },
+  "config": {}
+}

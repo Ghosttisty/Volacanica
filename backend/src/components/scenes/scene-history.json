@@ -1,0 +1,39 @@
+{
+  "collectionName": "components_scenes_scene_histories",
+  "info": {
+    "displayName": "SceneHistory",
+    "icon": "stack"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "collageImages": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "decorativeShapes": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "textGroups": {
+      "type": "component",
+      "component": "story-parts.text-group",
+      "repeatable": true
+    }
+  },
+  "config": {}
+}

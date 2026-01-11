@@ -1,0 +1,20 @@
+{
+  "collectionName": "components_animation_parts_overlay_texts",
+  "info": {
+    "displayName": "OverlayText",
+    "icon": "stack"
+  },
+  "options": {},
+  "attributes": {
+    "text": {
+      "type": "text"
+    },
+    "startAt": {
+      "type": "integer"
+    },
+    "endAt": {
+      "type": "integer"
+    }
+  },
+  "config": {}
+}

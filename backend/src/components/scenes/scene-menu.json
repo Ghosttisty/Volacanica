@@ -1,0 +1,29 @@
+{
+  "collectionName": "components_scenes_scene_menus",
+  "info": {
+    "displayName": "SceneMenu",
+    "icon": "stack"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "menuItems": {
+      "type": "component",
+      "component": "menu-parts.menu-item",
+      "repeatable": true
+    },
+    "floatingIngredients": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    }
+  },
+  "config": {}
+}

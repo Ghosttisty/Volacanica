@@ -1,0 +1,29 @@
+{
+  "collectionName": "components_scenes_scene_video_scrubs",
+  "info": {
+    "displayName": "SceneVideoScrub",
+    "icon": "stack"
+  },
+  "options": {},
+  "attributes": {
+    "video": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "scrollDuration": {
+      "type": "integer"
+    },
+    "overlayTexts": {
+      "type": "component",
+      "component": "animation-parts.overlay-text",
+      "repeatable": true
+    }
+  },
+  "config": {}
+}

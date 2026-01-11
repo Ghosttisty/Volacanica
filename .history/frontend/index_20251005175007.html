@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Cargando...</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+
+
+    <style>
+
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: white; overflow-x: hidden; }
+
+        .font-heading { font-family: 'Playfair Display', serif; }
+
+        .header { position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; background-color: rgba(10, 10, 10, 0.5); backdrop-filter: blur(10px); }
+
+        .pin-container { width: 100%; position: relative; }
+
+        .panel { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; text-align: center; }
+
+        .media-background { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
+
+        .overlay-text-container { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; pointer-events: none; }
+
+        .overlay-text { color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.8); opacity: 0; transform: translateY(20px); }
+
+        .ingredient-word { display: inline-block; }
+
+        .floating-ingredient { position: absolute; top: 0; left: 0; z-index: 20; pointer-events: none; width: 60px; height: 60px; background-size: contain; background-repeat: no-repeat; will-change: transform; }
+
+    </style>
+
+</head>
+
+<body>
+
+    <header class="header p-4">
+
+        <nav class="container mx-auto flex justify-between items-center">
+
+            <a href="#" class="font-heading text-2xl font-bold" id="restaurant-name"></a>
+
+            <a href="#reservations" class="bg-white text-black font-bold py-2 px-6 rounded-full hover:bg-gray-200 transition-transform duration-300 transform hover:scale-105">Reservar</a>
+
+        </nav>
+
+    </header>
+
+
+
+    <div id="loader" class="fixed inset-0 bg-black z-[9999] flex flex-col items-center justify-center"><p class="font-heading text-4xl mb-4">Cargando...</p><p id="loader-progress">0%</p></div>
+
+    <main id="main-container"></main>
+
+    <footer class="bg-black py-6 relative z-10"><div class="container mx-auto text-center text-gray-400"><p>&copy; 2024 <span id="restaurant-name-footer"></span>. Todos los derechos reservados.</p></div></footer>
+
+    <style id="custom-colors"></style>
+
+
+
+    <script>
+
+    document.addEventListener('DOMContentLoaded', async () => {
+
+        const API_URL = 'http://localhost:1337/api';
+
+        const mainContainer = document.getElementById('main-container');
+
+        const loader = document.getElementById('loader');
+
+        const getAttrs = (entity) => entity?.attributes ?? entity;
+
+
+
+        gsap.registerPlugin(ScrollTrigger);
+
+
+
+        async function loadGlobalSettings() {
+
+            try {
+
+                const response = await fetch(`${API_URL}/site-setting`);
+
+                if (!response.ok) return;
+
+                const data = await response.json();
+
+                const settings = getAttrs(data?.data);
+
+                if (!settings) return;
+
+                document.title = settings.RestaurantName || "El Restaurante";
+
+                document.getElementById('restaurant-name').textContent = settings.RestaurantName;
+
+                document.getElementById('restaurant-name-footer').textContent = settings.RestaurantName;
+
+                document.getElementById('custom-colors').innerHTML = `:root { --primary-color: ${settings.PrimaryColor}; --secondary-color: ${settings.SecondaryColor}; }`;
+
+            } catch (error) { console.error('Error al cargar ajustes globales:', error); }
+
+        }
+
+
+
+        async function createImageSequence(panel, frameData, timeline) {
+
+            if (!frameData || frameData.length === 0) return;
+
+            const canvas = document.createElement('canvas');
+
+            canvas.className = 'media-background';
+
+            const context = canvas.getContext('2d');
+
+            panel.appendChild(canvas);
+
+            const imageSeq = { frame: 0 };
+
+            const urls = frameData.map(f => `http://localhost:1337${getAttrs(f).url}`);
+
+            const images = await Promise.all(urls.map(src => new Promise((resolve, reject) => {
+
+                const img = new Image();
+
+                img.src = src;
+
+                img.onload = () => resolve(img);
+
+                img.onerror = reject;
+
+            })));
+
+            const render = () => {
+
+                if (!images[imageSeq.frame]) return;
+
+                const img = images[imageSeq.frame];
+
+                context.clearRect(0, 0, canvas.width, canvas.height);
+
+                context.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            };
+
+            const resizeCanvas = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; render(); };
+
+            window.addEventListener('resize', resizeCanvas);
+
+            resizeCanvas();
+
+            timeline.to(imageSeq, { frame: images.length - 1, snap: "frame", ease: "none", onUpdate: render }, 0);
+
+        }
+
+
+
+        async function buildPage() {
+
+            try {
+
+                const populateQuery = 'populate[scenes][on][scenes.scene-video-scrub][populate]=*&populate[scenes][on][scenes.scene-image-sequence][populate]=*&populate[scenes][on][scenes.scene-menu][populate][menuItems][populate]=*&populate[scenes][on][scenes.scene-menu][populate][floatingIngredients]=true';
+
+                const response = await fetch(`${API_URL}/cinematic-homepage?${populateQuery}`);
+
+                if (!response.ok) throw new Error(`No se pudo cargar el contenido (Error: ${response.status})`);
+
+               
+
+                const pageData = await response.json();
+
+                const scenes = getAttrs(pageData.data)?.scenes;
+
+
+
+                if (!scenes || scenes.length === 0) throw new Error("Contenido no encontrado en Strapi.");
+
+
+
+                for (const scene of scenes) {
+
+                    if (scene.__component === 'scenes.scene-video-scrub' || scene.__component === 'scenes.scene-image-sequence') {
+
+                        await buildAnimationSection(scene);
+
+                    } else if (scene.__component === 'scenes.scene-menu') {
+
+                        buildMenuSection(scene);
+
+                    }
+
+                }
+
+            } catch (error) {
+
+                console.error('Error al construir la página:', error);
+
+                mainContainer.innerHTML = `<div class="h-screen flex items-center justify-center text-center"><h1>Error.</h1><p>${error.message}</p></div>`;
+
+            } finally {
+
+                gsap.to(loader, { opacity: 0, duration: 0.5, onComplete: () => loader.style.display = 'none' });
+
+            }
+
+        }
+
+
+
+        async function buildAnimationSection(sceneData) {
+
+            const container = document.createElement('div');
+
+            container.className = 'pin-container h-screen';
+
+            mainContainer.appendChild(container);
+
+
+
+            const timeline = gsap.timeline({ scrollTrigger: { trigger: container, pin: true, start: "top top", end: `+=${sceneData.scrollDuration || 3000}`, scrub: 1 } });
+
+            const panel = document.createElement('div');
+
+            panel.className = 'panel';
+
+            container.appendChild(panel);
+
+
+
+            if (sceneData.__component === 'scenes.scene-video-scrub') {
+
+                const videoData = getAttrs(sceneData.video);
+
+                if (videoData) {
+
+                    const video = document.createElement('video');
+
+                    video.className = 'media-background';
+
+                    video.src = `http://localhost:1337${videoData.url}`;
+
+                    video.muted = true; video.playsInline = true; video.preload = 'auto';
+
+                    panel.appendChild(video);
+
+                    await new Promise(resolve => { video.onloadedmetadata = resolve; });
+
+                    timeline.to(video, { currentTime: video.duration || 0 }, 0);
+
+                }
+
+            } else if (sceneData.__component === 'scenes.scene-image-sequence') {
+
+                const frameData = getAttrs(sceneData.frames) || [];
+
+                await createImageSequence(panel, frameData, timeline);
+
+            }
+
+
+
+            if (sceneData.overlayTexts?.length > 0) {
+
+                const textContainer = document.createElement('div');
+
+                textContainer.className = 'overlay-text-container';
+
+                panel.appendChild(textContainer);
+
+                sceneData.overlayTexts.forEach((textData) => {
+
+                    const p = document.createElement('p');
+
+                    p.className = 'overlay-text font-heading text-5xl md:text-7xl text-center p-4';
+
+                    p.innerText = textData.text;
+
+                    textContainer.appendChild(p);
+
+                    timeline.to(p, { opacity: 1, y: 0 }, `${textData.startAt}%`).to(p, { opacity: 0, y: -20 }, `${textData.endAt}%`);
+
+                });
+
+            }
+
+        }
+
+
+
+        function buildMenuSection(scene) {
+
+            const menuContainer = document.createElement('div');
+
+            menuContainer.className = 'relative z-10';
+
+            mainContainer.appendChild(menuContainer);
+
+
+
+            const titleHTML = `<div class="h-screen flex flex-col justify-center items-center text-center"><h2 class="font-heading text-7xl">${scene.title}</h2><p class="mt-4 text-xl text-gray-400">Sigue bajando para descubrir</p></div>`;
+
+            menuContainer.innerHTML = titleHTML;
+
+
+
+            const menuItems = getAttrs(scene.menuItems) || [];
+
+            if (menuItems.length === 0) return;
+
+
+
+            const floatingIngredients = getAttrs(scene.floatingIngredients) || [];
+
+
+
+            menuItems.forEach((item) => {
+
+                const pinContainer = document.createElement('div');
+
+                pinContainer.className = 'pin-container h-screen';
+
+                menuContainer.appendChild(pinContainer);
+
+
+
+                const panel = document.createElement('div');
+
+                panel.className = 'panel';
+
+                pinContainer.appendChild(panel);
+
+
+
+                const timeline = gsap.timeline({ scrollTrigger: { trigger: pinContainer, pin: true, start: "top top", end: "+=1500", scrub: 1 } });
+
+               
+
+                const itemSequenceData = getAttrs(item.mediaSequence);
+
+                const itemMediaData = getAttrs(item.media);
+
+
+
+                if (itemSequenceData && itemSequenceData.length > 0) {
+
+                    createImageSequence(panel, itemSequenceData, timeline);
+
+                } else if (itemMediaData) {
+
+                    const mediaUrl = `http://localhost:1337${itemMediaData.url}`;
+
+                    const isVideo = itemMediaData.mime?.startsWith('video');
+
+                    panel.innerHTML = isVideo ? `<video src="${mediaUrl}" class="media-background" playsinline muted loop autoplay></video>` : `<div style="background-image: url(${mediaUrl})" class="media-background bg-cover bg-center"></div>`;
+
+                }
+
+
+
+                const ingredients = (item.description || '').split(',').map(ing => `<span class="ingredient-word">${ing.trim()}</span>`).join('');
+
+               
+
+                const contentHTML = `
+
+                    <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+
+                    <div class="relative z-10 p-8 w-full max-w-4xl mx-auto text-left">
+
+                        <h3 class="dish-name font-heading text-6xl md:text-8xl">${item.name}</h3>
+
+                        <p class="dish-price text-4xl mt-4">${item.price}</p>
+
+                        <div class="dish-ingredients text-xl mt-8 flex flex-wrap gap-x-4 gap-y-2">${ingredients}</div>
+
+                    </div>`;
+
+                panel.insertAdjacentHTML('beforeend', contentHTML);
+
+               
+
+                timeline.from(panel, { autoAlpha: 0, duration: 0.25 })
+
+                    .from(panel.querySelector('.dish-name'), { y: 50, opacity: 0, duration: 1 })
+
+                    .from(panel.querySelector('.dish-price'), { y: 50, opacity: 0, duration: 1 }, "-=0.7")
+
+                    .from(panel.querySelectorAll('.ingredient-word'), { y: 30, opacity: 0, stagger: 0.05, duration: 0.5 }, "-=0.5")
+
+                    .to(panel, { autoAlpha: 0, duration: 0.25, delay: 1 });
+
+
+
+                if(floatingIngredients.length > 0) {
+
+                    for (let i = 0; i < 5; i++) {
+
+                        const ing = floatingIngredients[i % floatingIngredients.length];
+
+                        const ingUrl = `http://localhost:1337${getAttrs(ing).url}`;
+
+                       
+
+                        const floatEl = document.createElement('div');
+
+                        floatEl.className = 'floating-ingredient';
+
+                        floatEl.style.backgroundImage = `url(${ingUrl})`;
+
+                        menuContainer.appendChild(floatEl);
+
+
+
+                        gsap.set(floatEl, { x: gsap.utils.random(0, window.innerWidth), y: gsap.utils.random(pinContainer.offsetTop, pinContainer.offsetTop + window.innerHeight) });
+
+
+
+                        gsap.to(floatEl, {
+
+                            scrollTrigger: {
+
+                                trigger: menuContainer,
+
+                                start: "top bottom",
+
+                                end: "bottom top",
+
+                                scrub: 1.5 + Math.random()
+
+                            },
+
+                            y: "+=" + gsap.utils.random(200, 400),
+
+                            x: "+=" + gsap.utils.random(-200, 200),
+
+                            rotation: gsap.utils.random(-360, 360),
+
+                            ease: "none"
+
+                        });
+
+                    }
+
+                }
+
+            });
+
+        }
+
+       
+
+        await loadGlobalSettings();
+
+        await buildPage();
+
+    });
+
+    </script>
+
+</body>
+
+</html>

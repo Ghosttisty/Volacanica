@@ -1,0 +1,29 @@
+{
+  "collectionName": "components_scenes_scene_image_sequences",
+  "info": {
+    "displayName": "SceneImageSequence",
+    "icon": "stack"
+  },
+  "options": {},
+  "attributes": {
+    "frames": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "scrollDuration": {
+      "type": "integer"
+    },
+    "overlayTexts": {
+      "type": "component",
+      "component": "animation-parts.overlay-text",
+      "repeatable": true
+    }
+  },
+  "config": {}
+}

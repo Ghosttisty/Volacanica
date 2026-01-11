@@ -1,0 +1,421 @@
+<!DOCTYPE html> 
+<html lang="es"> 
+<head> 
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Cargando...</title> 
+    <script src="https://cdn.tailwindcss.com"></script> 
+    <link rel="preconnect" href="https://fonts.googleapis.com"> 
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"> 
+    
+    <style> 
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: white; overflow-x: hidden; } 
+        .font-heading { font-family: 'Playfair Display', serif; } 
+        .header { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            z-index: 1000; 
+            background-color: rgba(10, 10, 10, 0.5); 
+            backdrop-filter: blur(10px); 
+            transition: transform 0.3s ease-in-out;
+        }
+        .header.hidden {
+            transform: translateY(-100%);
+        }
+        .pin-container { width: 100%; position: relative; } 
+        .panel { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; text-align: center; } 
+        .media-background { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; } 
+        .overlay-text-container { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; pointer-events: none; } 
+        .overlay-text { color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.8); } 
+        .ingredient-word { display: inline-block; } 
+        .floating-ingredient { position: absolute; top: 0; left: 0; z-index: 20; pointer-events: none; width: 60px; height: 60px; background-size: contain; background-repeat: no-repeat; will-change: transform; } 
+
+        #history-section .line { overflow: hidden; }
+        .collage-image {
+            position: absolute;
+            width: 30vw;
+            max-width: 350px;
+            height: auto;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            object-fit: cover;
+            will-change: transform;
+        }
+    </style> 
+</head> 
+<body> 
+    <!-- Loader fuera del wrapper para evitar problemas de posicionamiento con ScrollSmoother -->
+    <div id="loader" class="fixed inset-0 bg-black z-[9999] flex flex-col items-center justify-center"><p class="font-heading text-4xl mb-4">Cargando...</p><p id="loader-progress">0%</p></div>
+
+    <!-- ESTRUCTURA PARA SCROLLSMOOTHER -->
+    <div id="smooth-wrapper">
+        <div id="smooth-content">
+            <header class="header p-4"> 
+                <nav class="container mx-auto flex justify-between items-center"> 
+                    <a href="#" class="font-heading text-2xl font-bold" id="restaurant-name"></a> 
+                    <div class="flex items-center space-x-6">
+                        <a href="#history-section" data-scroll-to class="text-white hover:text-gray-300 transition-colors duration-300">Nuestra Historia</a>
+                        <a href="#menu-title-section" data-scroll-to class="text-white hover:text-gray-300 transition-colors duration-300">Menú</a>
+                        <a href="#reservations" data-scroll-to class="bg-white text-black font-bold py-2 px-6 rounded-full hover:bg-gray-200 transition-transform duration-300 transform hover:scale-105">Reservar</a>
+                    </div>
+                </nav> 
+            </header> 
+
+            <main id="main-container"></main> 
+            <footer class="bg-black py-6 relative z-10"><div class="container mx-auto text-center text-gray-400"><p>&copy; 2024 <span id="restaurant-name-footer"></span>. Todos los derechos reservados.</p></div></footer> 
+        </div>
+    </div>
+    
+    <style id="custom-colors"></style> 
+
+    <script type="module">
+    // --- Importar GSAP y plugins desde node_modules ---
+    import { gsap } from "../node_modules/gsap/index.js";
+    import { ScrollTrigger } from "../node_modules/gsap/ScrollTrigger.js";
+    import { ScrollToPlugin } from "../node_modules/gsap/ScrollToPlugin.js";
+    import { ScrollSmoother } from "../node_modules/gsap/ScrollSmoother.js";
+    import { TextPlugin } from "../node_modules/gsap/TextPlugin.js";
+    import { SplitText } from "../node_modules/gsap/SplitText.js";
+
+    document.addEventListener('DOMContentLoaded', async () => { 
+        const API_URL = 'http://localhost:1337/api'; 
+        const mainContainer = document.getElementById('main-container'); 
+        const loader = document.getElementById('loader'); 
+        const getAttrs = (entity) => entity?.attributes ?? entity; 
+
+        gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, ScrollSmoother, TextPlugin, SplitText); 
+
+        async function loadGlobalSettings() { 
+            try { 
+                const response = await fetch(`${API_URL}/site-setting`); 
+                if (!response.ok) return; 
+                const data = await response.json(); 
+                const settings = getAttrs(data?.data); 
+                if (!settings) return; 
+                document.title = settings.RestaurantName || "El Restaurante"; 
+                document.getElementById('restaurant-name').textContent = settings.RestaurantName; 
+                document.getElementById('restaurant-name-footer').textContent = settings.RestaurantName; 
+                document.getElementById('custom-colors').innerHTML = `:root { --primary-color: ${settings.PrimaryColor}; --secondary-color: ${settings.SecondaryColor}; }`; 
+            } catch (error) { console.error('Error al cargar ajustes globales:', error); } 
+        } 
+
+        async function createImageSequence(frameData) {
+            if (!frameData || frameData.length === 0) return null;
+            const canvas = document.createElement('canvas');
+            canvas.className = 'media-background';
+            const context = canvas.getContext('2d');
+            const imageSeq = { frame: 0 };
+            const urls = frameData.map(f => `http://localhost:1337${getAttrs(f).url}`);
+            const images = await Promise.all(urls.map(src => new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = src;
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+            })));
+        
+            const render = () => {
+                if (!images[imageSeq.frame] || !canvas.isConnected) return;
+                const img = images[imageSeq.frame];
+                if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                }
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                context.drawImage(img, 0, 0, canvas.width, canvas.height);
+            };
+        
+            const initialRender = () => {
+                if (images.length > 0 && canvas.isConnected) {
+                    if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+                         canvas.width = window.innerWidth;
+                         canvas.height = window.innerHeight;
+                    }
+                    context.drawImage(images[0], 0, 0, canvas.width, canvas.height);
+                }
+            };
+            window.addEventListener('resize', render);
+            return { canvas, imageSeq, images, render, initialRender };
+        }
+
+        async function buildAnimationSection(sceneData) { 
+            const container = document.createElement('div'); 
+            container.className = 'pin-container h-screen'; 
+            mainContainer.appendChild(container); 
+            const timeline = gsap.timeline({ 
+                scrollTrigger: { 
+                    trigger: container, 
+                    pin: true, 
+                    start: "top top", 
+                    end: `+=${sceneData.scrollDuration || 3000}`, 
+                    scrub: 1,
+                } 
+            }); 
+            const panel = document.createElement('div'); 
+            panel.className = 'panel'; 
+            container.appendChild(panel); 
+            if (sceneData.__component === 'scenes.scene-video-scrub') { 
+                const videoData = getAttrs(sceneData.video); 
+                if (videoData) { 
+                    const video = document.createElement('video'); 
+                    video.className = 'media-background'; 
+                    video.src = `http://localhost:1337${videoData.url}`;
+                    video.muted = true; video.playsInline = true; video.preload = 'auto'; 
+                    panel.appendChild(video); 
+                    await new Promise(resolve => { video.onloadedmetadata = resolve; }); 
+                    timeline.to(video, { currentTime: video.duration || 0 }, 0); 
+                } 
+            } else if (sceneData.__component === 'scenes.scene-image-sequence') { 
+                const frameData = getAttrs(sceneData.frames) || []; 
+                 if (frameData.length > 0) {
+                    const seq = await createImageSequence(frameData);
+                    panel.appendChild(seq.canvas);
+                    requestAnimationFrame(seq.initialRender);
+                    timeline.to(seq.imageSeq, {
+                        frame: seq.images.length - 1,
+                        snap: "frame",
+                        ease: "none",
+                        onUpdate: seq.render
+                    }, 0);
+                }
+            } 
+            if (sceneData.overlayTexts?.length > 0) { 
+                const textContainer = document.createElement('div'); 
+                textContainer.className = 'overlay-text-container'; 
+                panel.appendChild(textContainer); 
+                sceneData.overlayTexts.forEach((textData) => { 
+                    const p = document.createElement('p'); 
+                    p.className = 'overlay-text font-heading text-5xl md:text-7xl text-center p-4'; 
+                    p.innerText = textData.text; 
+                    textContainer.appendChild(p); 
+                    timeline.to(p, { opacity: 1, y: 0 }, `${textData.startAt}%`).to(p, { opacity: 0, y: -20 }, `${textData.endAt}%`); 
+                }); 
+            } 
+        }
+
+        function buildHistorySection(scene) {
+            const container = document.createElement('section');
+            container.id = 'history-section';
+            container.className = 'pin-container min-h-screen py-20 flex items-center';
+            const content = `
+                <div class="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-start">
+                    <div class="text-content relative z-10 px-4">
+                        <h2 class="font-heading text-5xl md:text-6xl mb-8">${scene.title || 'Nuestra Historia'}</h2>
+                        <p id="history-text" class="text-gray-300 text-lg leading-relaxed">${scene.storyText || ''}</p>
+                    </div>
+                    <div class="collage-container relative h-[60vh] w-full flex items-center justify-center"></div>
+                </div>`;
+            container.innerHTML = content;
+            mainContainer.appendChild(container);
+            const collageContainer = container.querySelector('.collage-container');
+            const imagesData = getAttrs(scene.collageImages) || [];
+            imagesData.forEach((imgData) => {
+                const img = document.createElement('img');
+                img.src = `http://localhost:1337${getAttrs(imgData).url}`;
+                img.className = 'collage-image';
+                collageContainer.appendChild(img);
+            });
+            const timeline = gsap.timeline({ 
+                scrollTrigger: { 
+                    trigger: container, pin: true, start: "top top", 
+                    end: `+=${imagesData.length * 400 + 500}`, scrub: 1.2,
+                } 
+            });
+            const title = container.querySelector('h2');
+            const splitTitle = new SplitText(title, { type: 'chars' });
+            gsap.from(splitTitle.chars, {
+                scrollTrigger: { trigger: title, start: "top 85%", toggleActions: "play none none reverse" },
+                duration: 0.8, opacity: 0, scale: 0, y: 80, rotationX: 180,
+                transformOrigin: "0% 50% -50", ease: "back", stagger: 0.05
+            });
+            const historyText = container.querySelector('#history-text');
+            if (historyText.textContent.length > 0) {
+                const originalText = historyText.textContent;
+                historyText.textContent = '';
+                timeline.to(historyText, {
+                    text: originalText, duration: originalText.length * 0.03, ease: "none",
+                }, 0);
+            }
+            const images = container.querySelectorAll('.collage-image');
+            images.forEach((img, i) => {
+                gsap.set(img, { 
+                    x: () => gsap.utils.random(-10, 10)+'vw', yPercent: 100,
+                    opacity: 0, rotation: () => gsap.utils.random(-20, 20), scale: 0.8 
+                });
+                timeline.to(img, { yPercent: 0, opacity: 1, scale: 1, rotation: () => gsap.utils.random(-5, 5), ease: 'power2.inOut' }, i * 0.2);
+            });
+        }
+
+        function buildReservationSection(scene) {
+            const section = document.createElement('section');
+            section.id = 'reservations';
+            section.className = 'min-h-screen bg-black py-20 flex flex-col items-center justify-center text-center relative z-20';
+            const content = `
+                <h2 class="font-heading text-6xl md:text-7xl mb-4">${scene.title || 'Reserva tu mesa'}</h2>
+                <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-12">${scene.subtitle || ''}</p>
+                <a href="${scene.reservationLink || '#'}" target="_blank" class="bg-white text-black font-bold py-4 px-10 rounded-full text-lg hover:bg-gray-200 transition-transform duration-300 transform hover:scale-105">
+                    ${scene.buttonText || 'Reservar Ahora'}
+                </a>
+                ${scene.phoneNumber ? `<div class="mt-16 text-gray-500"><p>O llámanos al: <span class="text-white">${scene.phoneNumber}</span></p></div>` : ''}
+            `;
+            section.innerHTML = content;
+            mainContainer.appendChild(section);
+            const title = section.querySelector('h2');
+            const splitTitle = new SplitText(title, { type: 'chars' });
+            gsap.from(splitTitle.chars, {
+                scrollTrigger: { trigger: title, start: "top 80%", toggleActions: "play none none reverse" },
+                duration: 0.8, opacity: 0, scale: 0, y: 80, rotationX: 180,
+                transformOrigin: "0% 50% -50", ease: "back", stagger: 0.05
+            });
+        }
+        
+        async function buildPage() { 
+            try { 
+                const populateQuery = 'populate[scenes][on][scenes.scene-video-scrub][populate]=*&populate[scenes][on][scenes.scene-image-sequence][populate]=*&populate[scenes][on][scenes.scene-history][populate]=*&populate[scenes][on][scenes.scene-reservation-form][populate]=*&populate[scenes][on][scenes.scene-menu][populate][menuItems][populate]=*&populate[scenes][on][scenes.scene-menu][populate][floatingIngredients]=true'; 
+                const response = await fetch(`${API_URL}/cinematic-homepage?${populateQuery}`); 
+                if (!response.ok) throw new Error(`No se pudo cargar el contenido (Error: ${response.status})`); 
+                const pageData = await response.json(); 
+                const scenes = getAttrs(pageData.data)?.scenes; 
+                if (!scenes || scenes.length === 0) throw new Error("Contenido no encontrado en Strapi."); 
+                for (const scene of scenes) { 
+                    if (scene.__component === 'scenes.scene-video-scrub' || scene.__component === 'scenes.scene-image-sequence') { 
+                        await buildAnimationSection(scene); 
+                    } else if (scene.__component === 'scenes.scene-history') { 
+                        buildHistorySection(scene); 
+                    } else if (scene.__component === 'scenes.scene-reservation-form') { 
+                        buildReservationSection(scene);
+                    } 
+                    else if (scene.__component === 'scenes.scene-menu') {
+                        const titleDiv = document.createElement('div');
+                        titleDiv.id = "menu-title-section";
+                        titleDiv.className = "h-screen flex flex-col justify-center items-center text-center relative z-10";
+                        titleDiv.innerHTML = `<h2 class="font-heading text-7xl">${scene.title}</h2><p class="mt-4 text-xl text-gray-400">Sigue bajando para descubrir</p>`;
+                        mainContainer.appendChild(titleDiv);
+                        const menuItems = getAttrs(scene.menuItems) || [];
+                        for (const [index, item] of menuItems.entries()) {
+                            await buildMenuItemAsScene(item, index === 0);
+                        }
+                    }
+                } 
+            } catch (error) { 
+                console.error('Error al construir la página:', error); 
+                mainContainer.innerHTML = `<div class="h-screen flex items-center justify-center text-center"><h1>Error.</h1><p>${error.message}</p></div>`; 
+            } finally { 
+                gsap.to(loader, { opacity: 0, duration: 0.5, onComplete: () => loader.style.display = 'none' }); 
+            } 
+        } 
+        
+        async function buildMenuItemAsScene(itemData, isFirstItem) {
+            const container = document.createElement('div');
+            container.className = 'pin-container h-screen';
+            mainContainer.appendChild(container);
+            
+            if (isFirstItem) {
+                const titleDiv = document.getElementById('menu-title-section');
+                gsap.to(titleDiv, {
+                    autoAlpha: 0,
+                    scale: 0.8,
+                    scrollTrigger: {
+                        trigger: container,
+                        start: "top bottom",
+                        end: "top center",
+                        scrub: true,
+                    }
+                });
+            }
+
+            const timeline = gsap.timeline({
+                scrollTrigger: {
+                    trigger: container,
+                    pin: true,
+                    start: "top top", 
+                    end: `+=${itemData.scrollDuration || 1500}`,
+                    scrub: 1,
+                }
+            });
+
+            const panel = document.createElement('div');
+            panel.className = 'panel';
+            container.appendChild(panel);
+            
+            const frameData = getAttrs(itemData.mediaSequence);
+            const mediaData = getAttrs(itemData.media);
+            if (frameData && frameData.length > 0) {
+                const seq = await createImageSequence(frameData);
+                panel.appendChild(seq.canvas);
+                requestAnimationFrame(seq.initialRender);
+                timeline.to(seq.imageSeq, {
+                    frame: seq.images.length - 1, snap: "frame", ease: "none", onUpdate: seq.render
+                }, 0); 
+            } else if (mediaData) {
+                const mediaUrl = `http://localhost:1337${mediaData.url}`;
+                panel.innerHTML = `<div style="background-image: url(${mediaUrl})" class="media-background bg-cover bg-center"></div>`;
+            }
+
+            const textContainerHTML = `
+                <div class="text-wrapper absolute inset-0 flex justify-center items-center">
+                    <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+                    <div class="relative z-10 p-8 w-full max-w-4xl mx-auto text-left">
+                        <h3 class="dish-name font-heading text-6xl md:text-8xl">${itemData.name}</h3>
+                        <p class="dish-price text-4xl mt-4">${itemData.price}</p>
+                        <div class="dish-ingredients text-xl mt-8 flex flex-wrap gap-x-4 gap-y-2">
+                            ${(itemData.description || '').split(',').map(ing => `<span class="ingredient-word">${ing.trim()}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>`;
+            panel.insertAdjacentHTML('beforeend', textContainerHTML);
+
+            const textWrapper = panel.querySelector('.text-wrapper');
+            const dishName = panel.querySelector('.dish-name');
+            const splitDishName = new SplitText(dishName, { type: 'chars' });
+            const price = panel.querySelector('.dish-price');
+            const ingredients = panel.querySelectorAll('.ingredient-word');
+
+            gsap.set(textWrapper, { autoAlpha: 0 });
+
+            timeline.to(textWrapper, { autoAlpha: 1 }, 0.2) // Aparece en el 20%
+                .from(splitDishName.chars, {
+                    opacity: 0, scale: 0, y: 80, rotationX: 180,
+                    transformOrigin: "0% 50% -50", ease: "back", stagger: 0.05
+                }, 0.25) 
+                .from(price, { y: 50, opacity: 0}, 0.35) 
+                .from(ingredients, { y: 30, opacity: 0, stagger: 0.05 }, 0.4);
+        }
+        
+        await loadGlobalSettings(); 
+        await buildPage(); 
+
+        const smoother = ScrollSmoother.create({
+            wrapper: "#smooth-wrapper",
+            content: "#smooth-content",
+            smooth: 1.5,
+            effects: true,
+        });
+
+        document.querySelectorAll('a[data-scroll-to]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const finalTarget = targetId === '#menu-section' ? '#menu-title-section' : targetId;
+                smoother.scrollTo(finalTarget, true, "top top");
+            });
+        });
+
+        let lastScrollTop = 0;
+        const header = document.querySelector('.header');
+        window.addEventListener("scroll", function(){
+           let st = window.pageYOffset || document.documentElement.scrollTop;
+           if (st > lastScrollTop && st > 100){
+              header.classList.add('hidden');
+           } else {
+              header.classList.remove('hidden');
+           }
+           lastScrollTop = st <= 0 ? 0 : st;
+        }, false);
+    }); 
+    </script> 
+</body> 
+</html>
+

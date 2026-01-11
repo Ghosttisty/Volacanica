@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+
+# Build outputs
+.tmp/
+.cache/
+build/
+dist/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+
+# Security - SSH Keys
+*.key
+*.ppk
+id_rsa
+id_rsa.pub
+known_hosts

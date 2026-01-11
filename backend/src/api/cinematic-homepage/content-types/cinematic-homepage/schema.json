@@ -1,0 +1,25 @@
+{
+  "kind": "singleType",
+  "collectionName": "cinematic_homepages",
+  "info": {
+    "singularName": "cinematic-homepage",
+    "pluralName": "cinematic-homepages",
+    "displayName": "CinematicHomepage"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "scenes": {
+      "type": "dynamiczone",
+      "components": [
+        "scenes.scene-video-scrub",
+        "scenes.scene-image-sequence",
+        "scenes.scene-menu",
+        "scenes.scene-history",
+        "scenes.scene-reservation-form"
+      ]
+    }
+  }
+}

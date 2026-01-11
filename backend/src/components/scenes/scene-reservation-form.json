@@ -1,0 +1,26 @@
+{
+  "collectionName": "components_scenes_scene_reservation_forms",
+  "info": {
+    "displayName": "SceneReservationForm",
+    "icon": "stack"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "buttonText": {
+      "type": "string"
+    },
+    "reservationLink": {
+      "type": "string"
+    },
+    "phoneNumber": {
+      "type": "string"
+    }
+  },
+  "config": {}
+}

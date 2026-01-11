@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cargando...</title>
+    <script src="config.js?v=1"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: transparent;
+            color: white;
+            color: white;
+            overflow-x: hidden;
+            pointer-events: none;
+            /* Let events pass through body */
+        }
+
+        .font-heading {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            background-color: transparent;
+            /* Start transparent */
+            transition: all 0.5s ease-in-out;
+        }
+
+        .header-scrolled {
+            background-color: rgba(10, 10, 10, 0.85);
+            backdrop-filter: blur(12px);
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+            border-bottom: 1px solid rgba(197, 160, 89, 0.1);
+            /* Subtle gold border */
+        }
+
+        .pin-container {
+            width: 100%;
+            position: relative;
+        }
+
+        .panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .media-background {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .overlay-text-container {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .overlay-text {
+            color: white;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+        }
+
+        .ingredient-word {
+            display: inline-block;
+        }
+
+        .floating-ingredient {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 20;
+            pointer-events: none;
+            width: 80px;
+            height: 80px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            will-change: transform;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        .collage-image {
+            position: absolute;
+            width: 30vw;
+            max-width: 350px;
+            height: auto;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            object-fit: cover;
+            will-change: transform;
+        }
+
+        /* Fluid Simulation Styles */
+        #fluid-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            display: block;
+            pointer-events: auto;
+            /* Capture events on canvas */
+            touch-action: pan-y;
+            /* Allow vertical scroll */
+        }
+
+        .pin-container,
+        .panel {
+            pointer-events: none;
+            /* Let clicks pass through transparent areas */
+        }
+
+        /* Re-enable events for content inside panels */
+        .panel>*,
+        .pin-container>* {
+            pointer-events: auto;
+        }
+
+        .website-content {
+            position: relative;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .btn-interactivo,
+        a,
+        button,
+        input,
+        .pointer-events-auto {
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        /* Ensure dat.gui is clickable */
+        .dg {
+            pointer-events: auto;
+        }
+
+        /* Ensure text is legible */
+        h1,
+        p,
+        h2,
+        h3 {
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+
+
+        /* Aggressive transparency for story section containers ONLY */
+        #dynamic-story-section,
+        .home-animate,
+        #home-animate-trigger,
+        .home-animate__wrapper,
+        .home-animate__scroll-wrapper,
+        .home-animate__text-track,
+        .pin-spacer,
+        #smooth-wrapper,
+        #smooth-content {
+            background-color: transparent !important;
+            background: transparent !important;
+            pointer-events: none !important;
+        }
+
+        /* --- LUXURY UPGRADES --- */
+
+        /* 1. Noise Overlay */
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9000;
+            opacity: 0.07;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* 2. Vignette */
+        .vignette-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 8999;
+            background: radial-gradient(circle, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.6) 100%);
+        }
+
+        /* 3. Typography Refinements */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: transparent;
+            color: #f5f5f5;
+            /* Softer white */
+            overflow-x: hidden;
+            pointer-events: none;
+            letter-spacing: 0.02em;
+            /* Editorial feel */
+            line-height: 1.7;
+            /* More breathing room */
+        }
+
+        h1,
+        h2,
+        h3,
+        .font-heading {
+            letter-spacing: 0.08em;
+            /* Elegant spacing for titles */
+            font-weight: 400;
+            /* Lighter weight for elegance */
+        }
+
+        /* Gold Accents */
+        .text-gold {
+            color: #C5A059;
+        }
+
+        .border-gold {
+            border-color: #C5A059;
+        }
+
+        /* Scroll Indicator */
+        /* Scroll Indicator */
+        .scroll-indicator {
+            position: fixed;
+            bottom: 3rem;
+            left: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            /* Ensures perfect centering */
+            color: #C5A059;
+            z-index: 2000;
+            pointer-events: none;
+            opacity: 0;
+            /* Hidden by default */
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            /* Increased base size */
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .scroll-indicator .arrow {
+            margin-top: 0.8rem;
+            animation: bounce 2s infinite;
+        }
+
+        .scroll-indicator.visible {
+            opacity: 1;
+            /* Transform is handled by flex centering now, mostly just opacity/translateY for exit */
+            transform: translateY(0);
+        }
+
+        /* When hidden by scroll */
+        .scroll-indicator.scrolled-out {
+            opacity: 0 !important;
+            transform: translateY(20px) !important;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            20%,
+            50%,
+            80%,
+            100% {
+                transform: translateY(0);
+            }
+
+            40% {
+                transform: translateY(-8px);
+            }
+
+            60% {
+                transform: translateY(-4px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="noise-overlay"></div>
+    <div class="vignette-overlay"></div>
+    <!-- Scroll Indicator -->
+    <div id="scroll-indicator" class="scroll-indicator">
+        <span class="text">Descubre</span>
+        <div class="arrow">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5V19M12 19L19 12M12 19L5 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </div>
+    </div>
+    <div id="cursor" class="custom-cursor"></div>
+    <div id="cursor-follower" class="custom-cursor-follower"></div>
+    <canvas id="fluid-canvas"></canvas>
+    <div class="website-content">
+        <header class="header p-6 transition-all duration-500">
+            <nav class="container mx-auto flex justify-between items-center">
+                <a href="#"
+                    class="font-heading text-xl tracking-[0.15em] font-bold text-white hover:text-gold transition-colors duration-300 uppercase"
+                    id="restaurant-name"></a>
+                <div class="flex items-center space-x-8">
+                    <a href="#dynamic-story-section" data-scroll-to
+                        class="text-xs tracking-[0.1em] uppercase text-gray-300 hover:text-white transition-colors duration-300"><span
+                            id="nav-history">Historia</span></a>
+                    <a href="#menu-title-section" data-scroll-to
+                        class="text-xs tracking-[0.1em] uppercase text-gray-300 hover:text-white transition-colors duration-300"><span
+                            id="nav-menu">Menú</span></a>
+                    <a href="#reservations" data-scroll-to
+                        class="border border-white/20 hover:border-gold text-white hover:text-gold text-xs tracking-[0.1em] uppercase py-3 px-8 rounded-sm transition-all duration-300"><span
+                            id="nav-reservation">Reservar</span></a>
+                </div>
+            </nav>
+        </header>
+
+        <div id="loader"
+            class="fixed inset-0 bg-black z-[9999] flex flex-col items-center justify-center pointer-events-auto">
+            <div class="overflow-hidden mb-8">
+                <h1 id="loader-title"
+                    class="font-heading text-4xl md:text-6xl text-gold tracking-[0.2em] uppercase opacity-0 transform translate-y-8 transition-all duration-1000">
+                    Cargando
+                </h1>
+            </div>
+            <div class="w-48 h-[1px] bg-gray-800 relative overflow-hidden">
+                <div id="loader-line"
+                    class="absolute top-0 left-0 h-full bg-[#C5A059] w-0 transition-all duration-200 ease-out"></div>
+            </div>
+            <p id="loader-progress" class="text-[10px] text-gray-500 mt-4 font-mono tracking-widest">0%</p>
+        </div>
+
+        <div id="smooth-wrapper">
+            <div id="smooth-content">
+                <main id="main-container"></main>
+                <footer class="bg-black/80 py-6 relative z-10">
+                    <div class="container mx-auto text-center text-gray-400">
+                        <p>&copy; 2024 <span id="restaurant-name-footer"></span>. Todos los derechos reservados.</p>
+                    </div>
+                </footer>
+            </div>
+        </div>
+
+        <style>
+            /* Custom Cursor */
+            .custom-cursor {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 8px;
+                height: 8px;
+                background-color: #C5A059;
+                /* Gold */
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 10000;
+                transform: translate(-50%, -50%);
+                transition: width 0.3s, height 0.3s, background-color 0.3s;
+                mix-blend-mode: difference;
+            }
+
+            .custom-cursor-follower {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 40px;
+                height: 40px;
+                border: 1px solid rgba(197, 160, 89, 0.3);
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 9999;
+                transform: translate(-50%, -50%);
+                transition: transform 0.1s ease-out, width 0.3s, height 0.3s, background-color 0.3s, border-color 0.3s;
+            }
+
+            .custom-cursor.hovered {
+                width: 0;
+                height: 0;
+            }
+
+            .custom-cursor-follower.hovered {
+                width: 60px;
+                height: 60px;
+                background-color: rgba(197, 160, 89, 0.1);
+                border-color: #C5A059;
+            }
+
+            /* Hide default cursor everywhere */
+            html,
+            body,
+            a,
+            button,
+            input,
+            .pointer-events-auto,
+            .dg {
+                cursor: none !important;
+            }
+
+            /* Mobile check: restore cursor on touch devices */
+            @media (hover: none) and (pointer: coarse) {
+
+                .custom-cursor,
+                .custom-cursor-follower {
+                    display: none;
+                }
+
+                html,
+                body,
+                a,
+                button,
+                input,
+                .pointer-events-auto,
+                .dg {
+                    cursor: auto !important;
+                }
+            }
+
+            /* --- MENU BOOK STYLES --- */
+            #menu-book-section {
+                perspective: 2500px;
+            }
+
+            .book-camera-rig {
+                height: 100%;
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transform-style: preserve-3d;
+            }
+
+            .book {
+                height: min(65vmin, 600px);
+                width: min(50vmin, 460px);
+                position: relative;
+                transform-style: preserve-3d;
+                transform: rotateX(10deg);
+                /* Slight tilt for presentation */
+            }
+
+            .book__spine {
+                height: 100%;
+                left: 0;
+                top: 0;
+                position: absolute;
+                background: #111;
+                transform-origin: 0 50%;
+                width: 15px;
+                transform: translate3d(0, 0, -10px) rotateY(0deg);
+                z-index: 0;
+            }
+
+            .book__page {
+                position: absolute;
+                left: 0;
+                top: 0;
+                height: 100%;
+                width: 100%;
+                transform-origin: 0 50%;
+                transform-style: preserve-3d;
+            }
+
+            /* Page Halfs */
+            .page__half {
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                backface-visibility: hidden;
+                background-color: #f8f5e6;
+                /* Cream paper */
+                background-image: linear-gradient(to right, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0) 5%, rgba(0, 0, 0, 0) 95%, rgba(0, 0, 0, 0.05) 100%);
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                border-radius: 0 5px 5px 0;
+                box-shadow: inset 3px 0px 10px rgba(0, 0, 0, 0.1);
+            }
+
+            .page__half--front {
+                transform: rotateY(0deg);
+            }
+
+            .page__half--back {
+                transform: rotateY(180deg);
+                border-radius: 5px 0 0 5px;
+                box-shadow: inset -3px 0px 10px rgba(0, 0, 0, 0.1);
+            }
+
+            /* Cover Customization - Reverted to Original Black */
+            .book__cover .page__half--front {
+                background: #0e100f;
+                color: #C5A059;
+                border: 1px solid #333;
+                box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.5);
+            }
+
+            .book__cover .page__half--back {
+                background: #0e100f;
+                border: 1px solid #333;
+            }
+
+            .cover-title {
+                font-family: 'Playfair Display', serif;
+                font-size: 3rem;
+                text-align: center;
+                margin-top: 35%;
+                letter-spacing: 0.2em;
+                border: 2px solid #C5A059;
+                padding: 2rem 1rem;
+                margin-left: 10%;
+                margin-right: 10%;
+                color: #C5A059;
+            }
+
+            .book-quote {
+                font-family: 'Playfair Display', serif;
+                font-style: italic;
+                font-size: 1rem;
+                width: 80%;
+                text-align: center;
+                color: #a0a0a0;
+                margin: auto;
+                line-height: 1.6;
+            }
+
+            /* Page Content */
+            .book-dish-container {
+                padding: 2rem 1.5rem;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                transition: background-color 0.3s;
+            }
+
+            .book-dish-container:hover {
+                background-color: rgba(197, 160, 89, 0.05);
+            }
+
+            .book-dish-title {
+                font-size: 1.1rem;
+                color: #111;
+                margin-bottom: 0.8rem;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                font-weight: bold;
+            }
+
+            .book-dish-image-wrapper {
+                width: 85%;
+                aspect-ratio: 1;
+                margin: 0.5rem 0;
+                overflow: hidden;
+                border-radius: 2px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+                border: 1px solid #ddd;
+            }
+
+            .book-dish-image {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .book-dish-info {
+                margin-top: auto;
+                padding-bottom: 1rem;
+                width: 100%;
+            }
+
+            .book-dish-desc {
+                font-size: 0.75rem;
+                color: #555;
+                line-height: 1.4;
+                margin-bottom: 0.8rem;
+                font-family: 'Inter', sans-serif;
+            }
+
+            .book-dish-price {
+                font-size: 1.25rem;
+                color: #C5A059;
+                font-family: 'Playfair Display', serif;
+                font-weight: bold;
+            }
+
+            .page__number {
+                position: absolute;
+                bottom: 0.8rem;
+                font-size: 0.7rem;
+                color: #999;
+                font-family: 'Inter', sans-serif;
+                letter-spacing: 0.1em;
+            }
+
+            .page__half--front .page__number {
+                right: 1.2rem;
+            }
+
+            .page__half--back .page__number {
+                left: 1.2rem;
+            }
+
+            .book-end-mark {
+                font-size: 2rem;
+                color: #C5A059;
+            }
+
+            .center-content {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                width: 100%;
+            }
+
+            .book-return-icon {
+                display: inline-block;
+                width: 0.8em;
+                height: 0.8em;
+                margin-left: 0.5em;
+                vertical-align: baseline;
+                cursor: pointer;
+                fill: #C5A059;
+                transition: transform 0.3s, fill 0.3s;
+                pointer-events: auto;
+                /* Ensure clickable */
+            }
+
+            .book-return-icon:hover {
+                transform: scale(1.2) rotate(-5deg);
+                fill: #fff;
+            }
+
+            /* --- MOBILE OPTIMIZATIONS --- */
+            @media (max-width: 768px) {
+
+                /* Story Section */
+                /* Story Section - 75% of Desktop Original */
+                .home-animate__text-group,
+                .home-animate__huge {
+                    font-size: 4.2rem !important;
+                    /* ~75% of 5.625rem */
+                    line-height: 1.1 !important;
+                    /* Remove width constraints to maintain horizontal scroll flow */
+                }
+
+                /* Story Section - Reduced 20% more */
+                .home-animate__text-group,
+                .home-animate__huge {
+                    font-size: 3.3rem !important;
+                    line-height: 1.1 !important;
+                }
+
+                .home-animate__text {
+                    font-size: 1.1rem !important;
+                }
+
+                .home-animate__text--large {
+                    font-size: 3rem !important;
+                }
+
+                /* Menu Title */
+                #menu-title-section h2,
+                .menu-title {
+                    font-size: 2.5rem !important;
+                }
+
+                /* Menu Book */
+                .book {
+                    width: 50vw !important;
+                    /* Reduced height significantly as requested */
+                    height: min(90vw, 38vh) !important;
+                    /* Center the spine (left edge) to the screen center */
+                    transform: translateX(50%) rotateX(10deg) !important;
+                }
+
+                .book-camera-rig {
+                    /* Ensure container allows full width visibility */
+                    width: 100% !important;
+                    overflow: visible !important;
+                }
+
+                /* Cover Title */
+                .cover-title {
+                    font-size: 1.5rem !important;
+                    margin-top: 35% !important;
+                    padding: 1rem !important;
+                    border-width: 1px !important;
+                }
+
+                .book-quote {
+                    font-size: 0.8rem !important;
+                }
+
+                /* Content Adjustment */
+                .book-dish-container {
+                    padding: 0.8rem 0.4rem !important;
+                }
+
+                .book-dish-title {
+                    font-size: 0.8rem !important;
+                    margin-bottom: 0.2rem !important;
+                    line-height: 1.1 !important;
+                }
+
+                /* Hide description to save space */
+                .book-dish-desc {
+                    display: none !important;
+                }
+
+                /* Price */
+                .book-dish-price {
+                    font-size: 1rem !important;
+                    margin-top: 0.2rem !important;
+                }
+
+                /* Image sizing */
+                .book-dish-image-wrapper {
+                    width: 75% !important;
+                    margin: 0.3rem auto !important;
+                }
+
+                .book-dish-image {
+                    object-fit: cover !important;
+                }
+
+                /* Dish Titles in Scroll Scenes */
+                .dish-name {
+                    font-size: 2.2rem !important;
+                    /* Slightly smaller to prevent overflow without breaking */
+                    white-space: normal !important;
+                    word-break: normal !important;
+                    /* Standard wrapping */
+                    overflow-wrap: normal !important;
+                    /* Prevent mid-word breaks */
+                    hyphens: none !important;
+                    /* No auto hyphens */
+                    line-height: 1.1 !important;
+                }
+
+                /* Reservation / Final "Form" Section */
+                #reservations h2 {
+                    font-size: 1.8rem !important;
+                    /* Safe size for long titles */
+                    word-wrap: normal !important;
+                    overflow-wrap: normal !important;
+                    /* Prevent breaking */
+                    hyphens: none !important;
+                    max-width: 95%;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+
+                #reservations p {
+                    font-size: 0.9rem !important;
+                    max-width: 90% !important;
+                    overflow-wrap: normal !important;
+                }
+
+                #reservations a {
+                    font-size: 1rem !important;
+                    padding: 1rem 2rem !important;
+                    white-space: normal !important;
+                    overflow-wrap: normal !important;
+                }
+
+                /* Footer / Final Section */
+                footer p {
+                    font-size: 0.75rem !important;
+                }
+
+                #loader-title {
+                    font-size: 2rem !important;
+                }
+
+                /* Header Mobile Fixes */
+                /* Fix overlapping: Hide nav links, Center Logo */
+                /* Header Mobile Fixes */
+                /* Fix overlapping: Show nav links, Adjust Layout */
+                .header nav>div {
+                    display: flex !important;
+                    gap: 1rem;
+                }
+
+                .header nav {
+                    justify-content: space-between !important;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+
+                #restaurant-name {
+                    font-size: 1.5rem !important;
+                }
+
+                /* Don't remove bar: Force solid background always */
+                .header {
+                    background-color: rgba(10, 10, 10, 0.95) !important;
+                    padding: 1rem !important;
+                }
+
+                /* Scroll Indicator Mobile */
+                /* Scroll Indicator Mobile */
+                .scroll-indicator {
+                    bottom: 6rem !important;
+                    /* Adjusted to center better below the main title */
+                    z-index: 1000 !important;
+                    /* Ensure it's on top */
+                    font-size: 1.1rem !important;
+                    /* Larger for mobile visibility */
+                }
+
+                .scroll-indicator .arrow svg {
+                    width: 32px;
+                    height: 32px;
+                }
+            }
+        </style>
+
+        <style id="custom-colors"></style>
+
+        <script type="module">
+            import { gsap } from "./libs/gsap/index.js";
+            import { ScrollTrigger } from "./libs/gsap/ScrollTrigger.js";
+            import { ScrollToPlugin } from "./libs/gsap/ScrollToPlugin.js";
+            import { ScrollSmoother } from "./libs/gsap/ScrollSmoother.js";
+            import { TextPlugin } from "./libs/gsap/TextPlugin.js";
+            import { SplitText } from "./libs/gsap/SplitText.js";
+
+            import { buildDynamicStorySection } from './story-animation.js?v=14';
+            import { buildMenuBook } from './menu-book.js?v=1';
+
+            // Scroll Indicator Logic
+            const scrollIndicator = document.getElementById('scroll-indicator');
+            let isLoaderFinished = false;
+
+            if (scrollIndicator) {
+                const checkScroll = () => {
+                    if (!isLoaderFinished) return; // Don't show if loader is active
+
+                    // Hide if scrolled more than 180% of the viewport (increased duration by 50%)
+                    if (window.scrollY > window.innerHeight * 1.8) {
+                        scrollIndicator.classList.add('scrolled-out');
+                        scrollIndicator.classList.remove('visible');
+                    } else {
+                        scrollIndicator.classList.remove('scrolled-out');
+                        scrollIndicator.classList.add('visible');
+                    }
+                };
+                window.addEventListener('scroll', checkScroll);
+            }
+
+            window.returnToBook = (dishIndex) => {
+                const st = ScrollTrigger.getById('menu-book-trigger');
+                if (!st) return;
+
+                // Calcular la página del libro correspondiente a este plato
+                // Platos 0,1 -> Página 2 (1 lógica interna)
+                // Platos 2,3 -> Página 3
+                // Recuerda que la animación de la página i ocurre en el timeline en position i + 0.5
+                // Queremos ir al estado donde la página YA se ha volteado o ESTÁ visible.
+
+                const pageIndex = Math.floor(dishIndex / 2);
+
+                // Timeline logic en menu-book.js:
+                // Pages loop: i goes from 0 (Cover) to innerPages.
+                // Cover (Page 0/DOM Page 1) turns at t=0.5
+                // Page 1 (Dishes 0,1 / DOM Page 2) turns at t=1.5
+                // Si quiero VER los platos 0 y 1, necesito haber pasado la portada (t=0.5) pero NO haber pasado la página 1 (t=1.5).
+                // Ideal target: t = 1.0 (Justo después de abrir portada)
+
+                // Si quiero VER los platos 2 y 3 (Page 2), necesito haber pasado Page 1 (t=1.5).
+                // Ideal target: t = 2.0
+
+                // Fórmula: targetTime = pageIndex + 1.0
+                // Total duration = innerPages + 2 (covers) roughly? 
+                // En menu-book: TOTAL_SCROLL_HEIGHT = (pageCount + 1) * SCROLL_HEIGHT_PER_PAGE
+                // La duración total del timeline es relativa al scroll. Proporción lineal.
+                // El timeline interno de GSAP usa duraciones relativas, pero ScrollTrigger mapea el scroll distance (pixels) al progress (0-1).
+                // Si el timeline tiene duración X, y queremos ir al tiempo T.
+                // Necesitamos saber la duración total del timeline construida en menu-book.
+                // En menu-book: `tl.to(...)` duration 1. Con overlaps? No, secuencial + 0.5 start.
+                // Page 0 turn: start 0.5, end 1.5.
+                // Page 1 turn: start 1.5, end 2.5.
+                // ...
+                // Last page (backcover): no turn.
+                // Total duration estimation: (pages.length - 1) + 0.5 + 1.0 = pages.length - 0.5 roughly.
+                // Mejor aproximación: Usar el progreso porcentual.
+                // Total Pages (DOM) = 1 (Cover) + innerPages + 1 (Back)
+                // Total Turns = Total Pages - 1.
+                // Turn i (0-based) starts at i + 0.5.
+                // To see content of Dish Page i (which is index i+1 in DOM pages array, index i in inner loop):
+                // We need Turn (i-1) to complete (if i>0) and Turn i to NOT start.
+                // Wait.
+                // Cover (Turn 0) reveals Dish Page 0 (Dishes 0,1).
+                // So for Dish 0,1 (pageIndex 0), we need Turn 0 to complete. Target time ~1.5 ? No, turn is 1s duration starting at 0.5. Ends at 1.5.
+                // So at 1.5, Cover is fully open. Content 0 is visible.
+                // Turn 1 (Dish Page 0 flipping to reveal Dish Page 1): 1.5 -> 2.5.
+                // So for Dish Page 0, we want time = 1.5.
+
+                // Generalizing: viewport time = 1.5 + pageIndex.
+
+                // How does this map to scroll pixels?
+                // The scroll length matches the timeline logical duration? No.
+                // GSAP ScrollTrigger mapea [start, end] a [progress 0, progress 1].
+                // We need to know the total duration of the linked timeline. Or just use `scroll` proportional to `pages count`.
+                // In menu-book logic:
+                // pages.forEach loop over ALL pages.
+                // i=0 (Cover) -> t=0.5.
+                // i=last (Back) -> skipped.
+                // Max time = (pages.length - 2) + 0.5 + 1.0 = pages.length - 0.5 roughly.
+                // Let's assume total logical time approx = pages.length.
+
+                // Simplified approach: Scroll to the start of the section + (pageIndex + 1) * PER_PAGE_HEIGHT.
+                // SCROLL_HEIGHT_PER_PAGE was window.innerHeight * 0.75.
+                // So target = st.start + (pageIndex + 1) * (window.innerHeight * 0.75).
+
+                // Add a small offset to be safe?
+                const PER_PAGE = window.innerHeight * 0.75;
+                const targetScroll = st.start + (pageIndex + 1) * PER_PAGE + (PER_PAGE * 0.1); // +10% to ensure flip is done
+
+                if (window.fluidSim) window.fluidSim.setPaused(true);
+                gsap.to(window, {
+                    scrollTo: targetScroll,
+                    duration: 2,
+                    ease: "power2.inOut",
+                    onComplete: () => { if (window.fluidSim) window.fluidSim.setPaused(false); }
+                });
+            };
+
+            document.addEventListener('DOMContentLoaded', async () => {
+                await document.fonts.ready;
+                initCustomCursor();
+                initializeApp();
+            });
+
+            function initCustomCursor() {
+                const cursor = document.getElementById('cursor');
+                const follower = document.getElementById('cursor-follower');
+                let mouseX = 0, mouseY = 0;
+                let posX = 0, posY = 0;
+
+                document.addEventListener('mousemove', (e) => {
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+
+                    // Immediate update for the dot
+                    gsap.set(cursor, { x: mouseX, y: mouseY });
+                });
+
+                // Smooth follower
+                gsap.ticker.add(() => {
+                    posX += (mouseX - posX) * 0.15;
+                    posY += (mouseY - posY) * 0.15;
+                    gsap.set(follower, { x: posX, y: posY });
+                });
+
+                // Hover effects
+                const interactiveElements = document.querySelectorAll('a, button, input, .pointer-events-auto, .dg');
+                interactiveElements.forEach(el => {
+                    el.addEventListener('mouseenter', () => {
+                        cursor.classList.add('hovered');
+                        follower.classList.add('hovered');
+                    });
+                    el.addEventListener('mouseleave', () => {
+                        cursor.classList.remove('hovered');
+                        follower.classList.remove('hovered');
+                    });
+                });
+
+                // Re-bind on DOM changes (for dynamic content)
+                const observer = new MutationObserver((mutations) => {
+                    const newElements = document.querySelectorAll('a, button, input, .pointer-events-auto');
+                    newElements.forEach(el => {
+                        // Simple check to avoid duplicate listeners (not perfect but works for simple cases)
+                        // A better way is to use event delegation on body
+                        el.onmouseenter = () => {
+                            cursor.classList.add('hovered');
+                            follower.classList.add('hovered');
+                        };
+                        el.onmouseleave = () => {
+                            cursor.classList.remove('hovered');
+                            follower.classList.remove('hovered');
+                        };
+                    });
+                });
+                observer.observe(document.body, { childList: true, subtree: true });
+            }
+
+            async function initializeApp() {
+                const API_URL = `${BACKEND_URL}/api`;
+                const mainContainer = document.getElementById('main-container');
+                const loader = document.getElementById('loader');
+                const getAttrs = (entity) => entity?.attributes ?? entity;
+
+                gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, ScrollSmoother, TextPlugin, SplitText);
+                ScrollTrigger.normalizeScroll(true);
+
+                // Lazy Background Observer
+                const lazyBackgroundObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const div = entry.target;
+                            const src = div.dataset.bg;
+                            if (src) {
+                                div.style.backgroundImage = `url(${src})`;
+                                div.classList.remove('lazy-bg');
+                                observer.unobserve(div);
+                            }
+                        }
+                    });
+                }, { rootMargin: "50% 0px 50% 0px" }); // Preload when within 0.5 screen height
+
+                // Header Scroll Effect
+                ScrollTrigger.create({
+                    start: 'top -50',
+                    end: 99999,
+                    toggleClass: { className: 'header-scrolled', targets: '.header' }
+                });
+
+                // Initial Loader Animation
+                const loaderTitle = document.getElementById('loader-title');
+                const loaderLine = document.getElementById('loader-line');
+                if (loaderTitle) gsap.to(loaderTitle, { opacity: 1, y: 0, duration: 1.5, ease: "power3.out", delay: 0.2 });
+                if (loaderLine) gsap.to(loaderLine, { width: "30%", duration: 2, ease: "power1.inOut" });
+
+                async function loadGlobalSettings() {
+                    try {
+                        const response = await fetch(`${API_URL}/site-setting`);
+                        if (!response.ok) return;
+                        const data = await response.json();
+                        const settings = getAttrs(data?.data);
+                        if (!settings) return;
+                        document.title = settings.RestaurantName || "El Restaurante";
+                        document.getElementById('restaurant-name').textContent = settings.RestaurantName;
+                        document.getElementById('restaurant-name-footer').textContent = settings.RestaurantName;
+
+                        if (settings.NavHistory) document.getElementById('nav-history').textContent = settings.NavHistory;
+                        if (settings.NavMenu) document.getElementById('nav-menu').textContent = settings.NavMenu;
+                        if (settings.NavReservation) document.getElementById('nav-reservation').textContent = settings.NavReservation;
+
+                        document.getElementById('custom-colors').innerHTML = `:root { --primary-color: ${settings.PrimaryColor}; --secondary-color: ${settings.SecondaryColor}; }`;
+                    } catch (error) { console.error('Error al cargar ajustes globales:', error); }
+                }
+
+                async function createImageSequence(frameData, options = {}) {
+                    if (!frameData || frameData.length === 0) return null;
+                    const canvas = document.createElement('canvas');
+                    canvas.className = 'media-background';
+                    const context = canvas.getContext('2d');
+
+                    // Progressive Loading Logic
+                    const images = new Array(frameData.length).fill(null);
+                    const urls = frameData.map(f => `${BACKEND_URL}${getAttrs(f).url}`);
+                    const imageSeq = { frame: 0 };
+
+                    // Helper to load a single image
+                    const loadImage = (index) => {
+                        return new Promise((resolve, reject) => {
+                            const img = new Image();
+                            img.src = urls[index];
+                            img.onload = () => {
+                                images[index] = img;
+                                resolve(img);
+                            };
+                            img.onerror = () => {
+                                console.warn(`Failed to load frame ${index}`);
+                                resolve(null); // Resolve null to avoid breaking Promise.all completely if we were using it, but here just to finish
+                            };
+                        });
+                    };
+
+                    // Load FIRST frame immediately (Blocking-ish, but fast) so we have something to show
+                    // We allow this to be awaited to ensure we don't render a blank canvas initially
+                    const firstImage = await loadImage(0);
+
+                    if (!firstImage) {
+                        console.error("Could not load first frame of sequence.");
+                        return null;
+                    }
+
+                    // Background load the rest
+                    (async () => {
+                        // Load in batches of 5 to not choke the network? Or just all?
+                        // Browsers limit parallel requests anyway. Let's just fire them.
+                        // For huge sequences, maybe chunking is better. 
+                        // Let's do a simple recursive loop to prioritize order.
+                        for (let i = 1; i < urls.length; i++) {
+                            loadImage(i).catch(e => console.error(e));
+                            // Small delay to yield to main thread if needed, though Image loading is off-thread
+                            if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+                        }
+                    })();
+
+                    const render = () => {
+                        const frameIndex = Math.floor(imageSeq.frame); // Ensure integer
+                        if (!canvas.isConnected) return;
+
+                        // If the specific frame isn't loaded yet, try to find the closest previous loaded frame
+                        let img = images[frameIndex];
+                        if (!img) {
+                            // Fallback: look backwards for a loaded frame
+                            for (let i = frameIndex - 1; i >= 0; i--) {
+                                if (images[i]) {
+                                    img = images[i];
+                                    break;
+                                }
+                            }
+                        }
+
+                        // If still no image (shouldn't happen if frame 0 is loaded), fallback to frame 0
+                        if (!img) img = images[0];
+                        if (!img) return;
+
+                        if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+                            canvas.width = window.innerWidth;
+                            canvas.height = window.innerHeight;
+                        }
+                        context.clearRect(0, 0, canvas.width, canvas.height);
+
+                        const fit = options.fit || 'fill';
+                        if (fit === 'cover') {
+                            const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
+                            const w = img.width * scale;
+                            const h = img.height * scale;
+                            const x = (canvas.width - w) / 2;
+                            const y = (canvas.height - h) / 2;
+                            context.drawImage(img, x, y, w, h);
+                        } else {
+                            context.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        }
+                    };
+
+                    const initialRender = () => {
+                        if (canvas.isConnected) {
+                            render();
+                        }
+                    };
+                    window.addEventListener('resize', render);
+
+                    // Return immediately after first frame is ready
+                    return { canvas, imageSeq, images, render, initialRender };
+                }
+
+                async function buildAnimationSection(sceneData) {
+                    const container = document.createElement('div');
+                    container.className = 'pin-container h-screen';
+                    mainContainer.appendChild(container);
+                    const timeline = gsap.timeline({
+                        scrollTrigger: {
+                            trigger: container,
+                            pin: true,
+                            start: "top top",
+                            end: `+=${sceneData.scrollDuration || 3000}`,
+                            scrub: 1,
+                        }
+                    });
+                    const panel = document.createElement('div');
+                    panel.className = 'panel';
+                    container.appendChild(panel);
+                    if (sceneData.__component === 'scenes.scene-video-scrub') {
+                        const videoData = getAttrs(sceneData.video);
+                        if (videoData) {
+                            const video = document.createElement('video');
+                            video.className = 'media-background';
+                            video.src = `${BACKEND_URL}${videoData.url}`;
+                            video.muted = true; video.playsInline = true; video.preload = 'auto';
+                            panel.appendChild(video);
+                            // Race condition: Wait for metadata OR 2 seconds timeout to avoid hanging
+                            const loadPromise = new Promise(resolve => { video.onloadedmetadata = resolve; });
+                            const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000));
+                            await Promise.race([loadPromise, timeoutPromise]);
+
+                            timeline.to(video, { currentTime: video.duration || 0 }, 0);
+                        }
+                    } else if (sceneData.__component === 'scenes.scene-image-sequence') {
+                        const frameData = getAttrs(sceneData.frames) || [];
+                        if (frameData.length > 0) {
+                            const seq = await createImageSequence(frameData); // Default fill for generic scenes? Or change? Keeping generic for now.
+                            panel.appendChild(seq.canvas);
+                            requestAnimationFrame(seq.initialRender);
+                            timeline.to(seq.imageSeq, {
+                                frame: seq.images.length - 1,
+                                snap: "frame",
+                                ease: "none",
+                                onUpdate: seq.render
+                            }, 0);
+                        }
+                    }
+                    if (sceneData.overlayTexts?.length > 0) {
+                        const textContainer = document.createElement('div');
+                        textContainer.className = 'overlay-text-container';
+                        panel.appendChild(textContainer);
+                        sceneData.overlayTexts.forEach((textData) => {
+                            const p = document.createElement('p');
+                            p.className = 'overlay-text font-heading text-5xl md:text-7xl text-center p-4';
+                            p.innerText = textData.text;
+                            textContainer.appendChild(p);
+                            timeline.to(p, { opacity: 1, y: 0 }, `${textData.startAt}%`).to(p, { opacity: 0, y: -20 }, `${textData.endAt}%`);
+                        });
+                    }
+                }
+
+                function buildReservationSection(scene) {
+                    const section = document.createElement('section');
+                    section.id = 'reservations';
+                    section.className = 'min-h-screen bg-black/50 py-20 flex flex-col items-center justify-center text-center relative z-20';
+                    const content = `
+                <h2 class="font-heading text-6xl md:text-7xl mb-4" style="word-break: keep-all; hyphens: none;">${scene.title || 'Reserva tu mesa'}</h2>
+                <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-12" style="overflow-wrap: normal;">${scene.subtitle || ''}</p>
+                <a href="${scene.reservationLink || '#'}" target="_blank" class="bg-white text-black font-bold py-4 px-10 rounded-full text-lg hover:bg-gray-200 transition-transform duration-300 transform hover:scale-105" style="white-space: nowrap;">
+                    ${scene.buttonText || 'Reservar Ahora'}
+                </a>
+                ${scene.phoneNumber ? `<div class="mt-16 text-gray-500"><p>O llámanos al: <span class="text-white" style="white-space: nowrap;">${scene.phoneNumber}</span></p></div>` : ''}
+            `;
+                    section.innerHTML = content;
+                    mainContainer.appendChild(section);
+                    const title = section.querySelector('h2');
+                    const splitTitle = new SplitText(title, { type: 'words,chars' });
+                    gsap.from(splitTitle.chars, {
+                        scrollTrigger: { trigger: title, start: "top 80%", toggleActions: "play none none reverse" },
+                        duration: 0.8, opacity: 0, scale: 0, y: 80, rotationX: 180,
+                        transformOrigin: "0% 50% -50", ease: "back", stagger: 0.05
+                    });
+                }
+
+                function buildFloatingIngredients(ingredientsData, menuContainer) {
+                    if (!ingredientsData || ingredientsData.length === 0) return;
+                    // Increased density for better transition effect
+                    for (let i = 0; i < 20; i++) {
+                        const ing = ingredientsData[i % ingredientsData.length];
+                        const ingUrl = `${BACKEND_URL}${getAttrs(ing).url}`;
+                        const floatEl = document.createElement('div');
+                        floatEl.className = 'floating-ingredient';
+                        floatEl.style.backgroundImage = `url(${ingUrl})`;
+
+                        // Random z-index to allow ingredients to float BEHIND the title (z-10) as well
+                        floatEl.style.zIndex = Math.random() < 0.4 ? 5 : 20;
+
+                        menuContainer.appendChild(floatEl);
+
+                        // Distribute starting positions much more broadly
+                        // Start from 20% down to 150% down (so some come from below)
+                        const startY = gsap.utils.random(window.innerHeight * 0.2, window.innerHeight * 1.6);
+
+                        gsap.set(floatEl, {
+                            x: gsap.utils.random(50, window.innerWidth - 50),
+                            y: startY,
+                            scale: gsap.utils.random(0.6, 2.0), // Bigger range for depth
+                            opacity: gsap.utils.random(0.7, 1)
+                        });
+
+                        gsap.to(floatEl, {
+                            scrollTrigger: {
+                                trigger: menuContainer,
+                                start: "top bottom",
+                                end: "bottom top",
+                                scrub: 1.5 // Smooth scrub
+                            },
+                            // Move upwards freely
+                            y: `-=${gsap.utils.random(600, 1000)}`,
+                            x: `+=${gsap.utils.random(-200, 200)}`, // More horizontal drift
+                            rotation: gsap.utils.random(-360, 360),
+                            ease: "none"
+                        });
+                    }
+                }
+
+                async function buildPage() {
+                    let loaderDismissed = false;
+                    const dismissLoader = async () => {
+                        if (loaderDismissed) return;
+                        loaderDismissed = true;
+                        // Luxury Loader Exit Animation
+                        const loaderTitle = document.getElementById('loader-title');
+                        const loaderLine = document.getElementById('loader-line');
+                        const loaderProgress = document.getElementById('loader-progress');
+
+                        // Complete the line
+                        await gsap.to(loaderLine, { width: "100%", duration: 0.8, ease: "power2.out" });
+                        if (loaderProgress) loaderProgress.textContent = "100%";
+
+                        // Fade out elements
+                        await gsap.to([loaderTitle, loaderLine, loaderProgress], { opacity: 0, y: -20, duration: 0.5, stagger: 0.1 });
+
+                        // Reveal site
+                        gsap.to(document.getElementById('loader'), {
+                            opacity: 0,
+                            duration: 1.0,
+                            ease: "power2.inOut",
+                            onComplete: () => {
+                                document.getElementById('loader').style.display = 'none';
+                                // Reveal Scroll Indicator
+                                isLoaderFinished = true;
+                                const scrollIndicator = document.getElementById('scroll-indicator');
+                                if (scrollIndicator && window.scrollY <= window.innerHeight * 1.2) {
+                                    scrollIndicator.classList.add('visible');
+                                }
+                            }
+                        });
+                    };
+
+                    try {
+                        const populateQuery = 'populate[scenes][on][scenes.scene-history][populate][textGroups][populate]=*&populate[scenes][on][scenes.scene-video-scrub][populate]=*&populate[scenes][on][scenes.scene-image-sequence][populate]=*&populate[scenes][on][scenes.scene-reservation-form][populate]=*&populate[scenes][on][scenes.scene-menu][populate][menuItems][populate]=*&populate[scenes][on][scenes.scene-menu][populate][floatingIngredients]=true';
+
+                        const response = await fetch(`${API_URL}/cinematic-homepage?${populateQuery}`);
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        const pageData = await response.json();
+                        const scenes = getAttrs(pageData.data)?.scenes;
+                        if (!scenes || scenes.length === 0) throw new Error("Contenido de escenas no encontrado.");
+
+                        // 1. Build and AWAIT the "Above the Fold" content (History Section)
+                        // We filter specifically for it or just take the first one if we assume order.
+                        // Let's iterate but handle the first one specially.
+
+                        // We will build scenes sequentially but dismiss loader after the first visual one.
+
+                        let firstVisualBuilt = false;
+
+                        for (const scene of scenes) {
+                            switch (scene.__component) {
+                                // For History, we want to ensure it's ready.
+                                case 'scenes.scene-history':
+                                    buildDynamicStorySection(scene, mainContainer);
+                                    // History logic is sync (DOM creation), but images inside might take a momment. 
+                                    // Though it's text heavy. We count this as "Ready".
+                                    firstVisualBuilt = true;
+                                    break;
+
+                                // These might take time, so we process them.
+                                case 'scenes.scene-video-scrub':
+                                case 'scenes.scene-image-sequence':
+                                    // If this is the VERY first scene on the page, we must await it.
+                                    // Otherwise, we can fire and forget (blocking the loop? No, accessing DOM is sync).
+                                    // `buildAnimationSection` IS async because it awaits video metadata or images.
+
+                                    if (!firstVisualBuilt) {
+                                        await buildAnimationSection(scene);
+                                        firstVisualBuilt = true;
+                                    } else {
+                                        // Background it!
+                                        buildAnimationSection(scene).catch(e => console.error("Background scene load invalid:", e));
+                                    }
+                                    break;
+
+                                case 'scenes.scene-reservation-form':
+                                    buildReservationSection(scene);
+                                    break;
+
+                                case 'scenes.scene-menu':
+                                    const titleDiv = document.createElement('div');
+                                    titleDiv.id = "menu-title-section";
+                                    titleDiv.className = "h-screen flex flex-col justify-center items-center text-center relative z-10";
+                                    titleDiv.innerHTML = `<h2 class="font-heading text-7xl">${scene.title}</h2><p class="mt-4 text-xl text-gray-400">Sigue bajando para descubrir</p>`;
+                                    mainContainer.appendChild(titleDiv);
+
+                                    const floatingIngredientsData = getAttrs(scene.floatingIngredients) || [];
+                                    if (floatingIngredientsData.length > 0) {
+                                        buildFloatingIngredients(floatingIngredientsData, titleDiv);
+                                    }
+
+                                    const menuItems = getAttrs(scene.menuItems) || [];
+
+                                    // --- INSERTAR LIBRO DEL MENÚ ---
+                                    buildMenuBook(menuItems, mainContainer);
+                                    // ------------------------------
+
+                                    // DO NOT AWAIT THE DISHES
+                                    // Use a loop that chains them or just runs them
+                                    menuItems.forEach((item, index) => {
+                                        buildMenuItemAsScene(item, index === 0, index).catch(e => console.error("Menu Item load error", e));
+                                    });
+                                    break;
+                            }
+
+                            // DISMISS LOADER AGGRESSIVELY
+                            // If we have built the history section, OR if we have built at least one visual section.
+                            if (firstVisualBuilt) {
+                                dismissLoader();
+                            }
+                        }
+
+                        // Just in case loop finishes without triggering (empty scenes?)
+                        dismissLoader();
+
+                    } catch (error) {
+                        console.error('Error al construir la página:', error);
+                        mainContainer.innerHTML = `<div class="h-screen flex items-center justify-center text-center p-4"><h1>Error al cargar el contenido.</h1><p class="text-gray-400 mt-2">${error.message}</p></div>`;
+                        dismissLoader(); // Ensure we don't get stuck forever
+                    }
+                }
+
+                async function buildMenuItemAsScene(itemData, isFirstItem, index) {
+                    const container = document.createElement('div');
+                    // Asignamos ID para el link del libro
+                    container.id = `dish-${index}`;
+                    container.className = 'pin-container h-screen relative overflow-hidden';
+                    mainContainer.appendChild(container);
+
+                    if (isFirstItem) {
+                        const titleDiv = document.getElementById('menu-title-section');
+                        gsap.to(titleDiv, {
+                            autoAlpha: 0,
+                            scale: 0.8,
+                            scrollTrigger: {
+                                trigger: container,
+                                start: "top bottom",
+                                end: "top center",
+                                scrub: true,
+                            }
+                        });
+                    }
+
+                    const timeline = gsap.timeline();
+                    ScrollTrigger.create({
+                        trigger: container,
+                        animation: timeline,
+                        start: "top center",
+                        end: () => `+=${window.innerHeight / 2 + (itemData.scrollDuration || 1500)}`,
+                        scrub: 1,
+                    });
+                    ScrollTrigger.create({
+                        trigger: container,
+                        pin: true,
+                        start: "top 60px",
+                        end: `+=${itemData.scrollDuration || 1500}`,
+                        anticipatePin: 1,
+                        invalidateOnRefresh: true,
+                        fastScrollEnd: true, // Handle fast scrolls
+                        preventOverlaps: true // Ensure correct state on reverse
+                    });
+
+                    const panel = document.createElement('div');
+                    panel.className = 'panel';
+                    container.appendChild(panel);
+
+                    const frameData = getAttrs(itemData.mediaSequence);
+                    const mediaData = getAttrs(itemData.media);
+                    const TOTAL_ANIMATION_DURATION = 10;
+
+                    if (frameData && frameData.length > 0) {
+                        // Use 'cover' to prevent vertical stretching which looks bad on mobile
+                        const seq = await createImageSequence(frameData, { fit: 'cover' });
+                        panel.appendChild(seq.canvas);
+                        requestAnimationFrame(seq.initialRender);
+                        timeline.to(seq.imageSeq, {
+                            frame: seq.images.length - 1, snap: "frame", ease: "none", onUpdate: seq.render, duration: TOTAL_ANIMATION_DURATION
+                        }, 0);
+                    } else if (mediaData) {
+                        // Responsive Media Handling:
+                        // Desktop: Keep the "perfect" full-screen background experience.
+                        // Mobile: Use a constrained, square image to avoid stretching and domination.
+                        // Lazy loading implemented for both.
+                        const mediaUrl = `${BACKEND_URL}${getAttrs(mediaData).url}`;
+
+                        if (window.matchMedia("(max-width: 768px)").matches) {
+                            panel.innerHTML = `
+                                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <img src="${mediaUrl}" 
+                                         loading="lazy"
+                                         style="height: 35vh; width: auto; aspect-ratio: 1/1; object-fit: cover; box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.4); border-radius: 8px;" 
+                                         alt="${itemData.name}" 
+                                    />
+                                </div>`;
+                        } else {
+                            // Desktop: Use IntersectionObserver for background images
+                            const bgDiv = document.createElement('div');
+                            bgDiv.className = 'media-background bg-cover bg-center lazy-bg';
+                            bgDiv.dataset.bg = mediaUrl; // Store URL in data attribute
+                            // Placeholder or transparent initially
+                            bgDiv.style.backgroundColor = 'rgba(20,20,20,0.5)';
+                            panel.appendChild(bgDiv);
+
+                            // Observe this element
+                            lazyBackgroundObserver.observe(bgDiv);
+                        }
+                    }
+
+                    const isLongTitle = itemData.name.length > 35;
+                    const isMediumTitle = itemData.name.length > 20 && itemData.name.length <= 35;
+
+                    let titleBaseClass = "dish-name font-heading";
+
+                    // Respond to user feedback: Desktop must be "perfect" (large, no wrap). Mobile must be readable/small.
+                    let sizeClass = "text-4xl md:text-8xl";
+                    let wrapClass = "whitespace-normal md:whitespace-nowrap";
+
+                    if (isLongTitle) {
+                        sizeClass = "text-3xl md:text-6xl";
+                        wrapClass = "whitespace-normal md:text-balance";
+                    } else if (isMediumTitle) {
+                        sizeClass = "text-4xl md:text-7xl";
+                        wrapClass = "whitespace-normal md:whitespace-nowrap";
+                    }
+
+                    const finalTitleClasses = `${titleBaseClass} ${sizeClass} ${wrapClass}`;
+
+                    const titleStyle = "word-break: keep-all; overflow-wrap: normal; hyphens: none;";
+
+                    const textContainerHTML = `
+                <div class="text-wrapper absolute inset-0 flex justify-center items-center pointer-events-none">
+                    <div class="absolute inset-0 bg-black bg-opacity-30 pointer-events-none"></div>
+                    <div class="relative z-10 p-6 w-full max-w-5xl mx-auto text-center md:text-left pointer-events-none">
+                        <h3 class="${finalTitleClasses}" style="${titleStyle}; text-shadow: 0 4px 10px rgba(0,0,0,0.8);">${itemData.name}<span class="book-return-icon pointer-events-auto" onclick="returnToBook(${index})" title="Ver en el libro"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 4H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H7V6h14v14z"/><path d="M9 8h2v2H9zm4 0h6v2h-6zm-4 4h2v2H9zm4 0h6v2h-6zm-4 4h2v2H9zm4 0h6v2h-6zm-4 4h2v2H9zm4 0h6v2h-6z"/></svg></span></h3>
+                        <p class="dish-price text-3xl md:text-5xl mt-3 font-heading text-gold" style="text-shadow: 0 4px 10px rgba(0,0,0,0.8);">${itemData.price}</p>
+                        <div class="dish-ingredients text-lg md:text-2xl mt-6 flex flex-wrap justify-center md:justify-start gap-x-3 gap-y-1 text-gray-200" style="text-shadow: 0 2px 5px rgba(0,0,0,0.8);">
+                            ${(itemData.description || '').split(',').map(ing => `<span class="ingredient-word">${ing.trim()}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>`;
+                    panel.insertAdjacentHTML('beforeend', textContainerHTML);
+
+                    const textWrapper = panel.querySelector('.text-wrapper');
+                    const dishName = panel.querySelector('.dish-name');
+                    const splitDishName = new SplitText(dishName, { type: 'words,chars' });
+                    const price = panel.querySelector('.dish-price');
+                    const ingredients = panel.querySelectorAll('.ingredient-word');
+                    gsap.set(textWrapper, { autoAlpha: 0 });
+                    const textAnimationStartPoint = 0;
+                    const textAnimationEndPoint = 0.9;
+                    const textDuration = TOTAL_ANIMATION_DURATION * textAnimationEndPoint;
+
+                    timeline.to(textWrapper, { autoAlpha: 1, duration: 0.3 }, textAnimationStartPoint)
+                        .from(splitDishName.chars, {
+                            opacity: 0, scale: 0, y: 80, rotationX: 180, transformOrigin: "0% 50% -50", ease: "back", stagger: {
+                                amount: textDuration * 0.5,
+                                from: "start",
+                                onStart: function () {
+                                    if (window.fluidSim && this.targets()[0]) {
+                                        const el = this.targets()[0];
+                                        const rect = el.getBoundingClientRect();
+                                        const x = (rect.left + rect.width / 2) / window.innerWidth;
+                                        const y = 1.0 - (rect.top + rect.height / 2) / window.innerHeight;
+                                        // Small, subtle splat for each letter
+                                        window.fluidSim.applyForce(x, y, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, { r: 1.0, g: 1.0, b: 1.0 });
+                                    }
+                                }
+                            }
+                        }, textAnimationStartPoint)
+                        .from(price, {
+                            y: 50, opacity: 0, duration: textDuration * 0.3,
+                            onStart: () => {
+                                if (window.fluidSim) {
+                                    const rect = price.getBoundingClientRect();
+                                    const y = 1.0 - (rect.top + rect.height / 2) / window.innerHeight;
+                                    // Green beam effect: rapid horizontal sweep
+                                    const beamColor = { r: 0.2, g: 2.0, b: 0.2 }; // Neon green
+                                    for (let i = 0; i < 10; i++) {
+                                        setTimeout(() => {
+                                            const progress = i / 10;
+                                            window.fluidSim.applyForce(progress, y, 50, 0, beamColor);
+                                        }, i * 20);
+                                    }
+                                }
+                            }
+                        }, textAnimationStartPoint + (textDuration * 0.3))
+                        .from(ingredients, {
+                            y: 30, opacity: 0, stagger: { amount: textDuration * 0.4, from: "start" },
+                            onStart: () => {
+                                if (window.fluidSim) window.fluidSim.applyForce(0.5, 0.6, (Math.random() - 0.5) * 4, 2);
+                            }
+                        }, textAnimationStartPoint + (textDuration * 0.5));
+                }
+
+                await loadGlobalSettings();
+                await buildPage();
+
+                const smoother = ScrollSmoother.create({
+                    wrapper: "#smooth-wrapper",
+                    content: "#smooth-content",
+                    smooth: ScrollTrigger.isTouch === 1 ? 0 : 2.2, // Disable smoothing on touch devices
+                    effects: ScrollTrigger.isTouch === 1 ? false : true, // Disable effects on touch for performance
+                });
+
+                document.querySelectorAll('a[data-scroll-to]').forEach(anchor => {
+                    anchor.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        const targetId = this.getAttribute('href');
+                        const finalTarget = targetId === '#menu-section' ? '#menu-title-section' : targetId;
+                        smoother.scrollTo(finalTarget, true, "top top");
+                    });
+                });
+            }
+        </script>
+        <script src="assets/js/dat.gui.min.js"></script>
+        <script src="assets/js/fluid-sim.js"></script>
+    </div>
+    <script>
+        // Force transparency on story section elements to ensure fluid visibility
+        (function () {
+            const observer = new MutationObserver(() => {
+                const targets = document.querySelectorAll('.home-animate, .home-animate__wrapper, .pin-spacer, #dynamic-story-section, #smooth-wrapper, #smooth-content');
+                targets.forEach(el => {
+                    el.style.setProperty('background-color', 'transparent', 'important');
+                    el.style.setProperty('background', 'transparent', 'important');
+                    el.style.setProperty('pointer-events', 'none', 'important');
+                });
+            });
+            observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+        })();
+    </script>
+</body>
+
+</html>

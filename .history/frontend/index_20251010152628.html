@@ -1,0 +1,654 @@
+<!DOCTYPE html> 
+<html lang="es"> 
+<head> 
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Cargando...</title> 
+    <script src="https://cdn.tailwindcss.com"></script> 
+    <link rel="preconnect" href="https://fonts.googleapis.com"> 
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"> 
+    
+    <style> 
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: white; overflow-x: hidden; } 
+        .font-heading { font-family: 'Playfair Display', serif; } 
+        .header { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            z-index: 1000; 
+            background-color: rgba(10, 10, 10, 0.5); 
+            backdrop-filter: blur(10px); 
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .pin-container { width: 100%; position: relative; } 
+        .panel { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; text-align: center; } 
+        .media-background { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; } 
+        .overlay-text-container { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; pointer-events: none; } 
+        .overlay-text { color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.8); } 
+        .ingredient-word { display: inline-block; } 
+        .floating-ingredient { position: absolute; top: 0; left: 0; z-index: 20; pointer-events: none; width: 80px; height: 80px; background-size: contain; background-repeat: no-repeat; background-position: center; will-change: transform; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3)); } 
+
+        .collage-image {
+            position: absolute;
+            width: 30vw;
+            max-width: 350px;
+            height: auto;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            object-fit: cover;
+            will-change: transform;
+        }
+
+/* ----- CSS ADICIONAL / CORRECCIONES ----- */
+#dynamic-story-section {
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  background: transparent;
+}
+.story-wrapper {
+  height: 100%;
+  position: relative;
+  display: block;
+  white-space: nowrap; /* facilita el scroll horizontal */
+  will-change: transform;
+}
+.animated-word {
+  position: absolute;
+  white-space: nowrap;
+  font-size: 6vw;
+  font-family: 'Playfair Display', serif;
+  padding: 0.2em 0.5em;
+  border-radius: 0.2em;
+  will-change: transform, opacity;
+  color: #000000; /* texto oscuro sobre fondo claro de cada palabra */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  visibility: hidden; /* oculto por defecto, GSAP controlará visibilidad y alpha */
+  opacity: 0;
+  transform-origin: center center;
+}
+/* imagen decorativa dentro de palabra */
+.animated-word-image {
+  position: absolute;
+  width: 1.5em;
+  height: 1.5em;
+  object-fit: contain;
+  pointer-events: none;
+  transform-origin: center center;
+}
+    </style> 
+</head> 
+<body> 
+    <!-- El header se mueve fuera del wrapper para que no sea afectado por ScrollSmoother -->
+    <header class="header p-4"> 
+        <nav class="container mx-auto flex justify-between items-center"> 
+            <a href="#" class="font-heading text-2xl font-bold" id="restaurant-name"></a> 
+            <div class="flex items-center space-x-6">
+                <a href="#dynamic-story-section" data-scroll-to class="text-white hover:text-gray-300 transition-colors duration-300"><span id="nav-history">Nuestra Historia</span></a>
+                <a href="#menu-title-section" data-scroll-to class="text-white hover:text-gray-300 transition-colors duration-300"><span id="nav-menu">Menú</span></a>
+                <a href="#reservations" data-scroll-to class="bg-white text-black font-bold py-2 px-6 rounded-full hover:bg-gray-200 transition-transform duration-300 transform hover:scale-105"><span id="nav-reservation">Reservar</span></a>
+            </div>
+        </nav> 
+    </header> 
+
+    <!-- Loader fuera del wrapper para evitar problemas de posicionamiento con ScrollSmoother -->
+    <div id="loader" class="fixed inset-0 bg-black z-[9999] flex flex-col items-center justify-center"><p class="font-heading text-4xl mb-4">Cargando...</p><p id="loader-progress">0%</p></div>
+
+    <!-- ESTRUCTURA PARA SCROLLSMOOTHER -->
+    <div id="smooth-wrapper">
+        <div id="smooth-content"> 
+
+            <main id="main-container"></main> 
+            <footer class="bg-black py-6 relative z-10"><div class="container mx-auto text-center text-gray-400"><p>&copy; 2024 <span id="restaurant-name-footer"></span>. Todos los derechos reservados.</p></div></footer> 
+        </div>
+    </div>
+    
+    <style id="custom-colors"></style> 
+
+    <script type="module">
+    // --- Importar GSAP y plugins desde node_modules ---
+    import { gsap } from "../node_modules/gsap/index.js";
+    import { ScrollTrigger } from "../node_modules/gsap/ScrollTrigger.js";
+    import { ScrollToPlugin } from "../node_modules/gsap/ScrollToPlugin.js";
+    import { ScrollSmoother } from "../node_modules/gsap/ScrollSmoother.js";
+    import { TextPlugin } from "../node_modules/gsap/TextPlugin.js";
+    import { SplitText } from "../node_modules/gsap/SplitText.js";
+
+    document.addEventListener('DOMContentLoaded', async () => { 
+        const API_URL = 'http://localhost:1337/api'; 
+        const mainContainer = document.getElementById('main-container'); 
+        const loader = document.getElementById('loader'); 
+        const getAttrs = (entity) => entity?.attributes ?? entity; 
+
+        gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, ScrollSmoother, TextPlugin, SplitText); 
+
+        async function loadGlobalSettings() { 
+            try { 
+                const response = await fetch(`${API_URL}/site-setting`); 
+                if (!response.ok) return; 
+                const data = await response.json(); 
+                const settings = getAttrs(data?.data); 
+                if (!settings) return; 
+                document.title = settings.RestaurantName || "El Restaurante"; 
+                                document.getElementById('restaurant-name').textContent = settings.RestaurantName;
+                                document.getElementById('restaurant-name-footer').textContent = settings.RestaurantName;
+                                
+                                // Cargar textos de navegación
+                                if (settings.NavHistory) document.getElementById('nav-history').textContent = settings.NavHistory;
+                                if (settings.NavMenu) document.getElementById('nav-menu').textContent = settings.NavMenu;
+                                if (settings.NavReservation) document.getElementById('nav-reservation').textContent = settings.NavReservation;
+                
+                                document.getElementById('custom-colors').innerHTML = `:root { --primary-color: ${settings.PrimaryColor}; --secondary-color: ${settings.SecondaryColor}; }`;             } catch (error) { console.error('Error al cargar ajustes globales:', error); } 
+        } 
+
+        async function createImageSequence(frameData) {
+            if (!frameData || frameData.length === 0) return null;
+            const canvas = document.createElement('canvas');
+            canvas.className = 'media-background';
+            const context = canvas.getContext('2d');
+            const imageSeq = { frame: 0 };
+            const urls = frameData.map(f => `http://localhost:1337${getAttrs(f).url}`);
+            const images = await Promise.all(urls.map(src => new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = src;
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+            })));
+        
+            const render = () => {
+                if (!images[imageSeq.frame] || !canvas.isConnected) return;
+                const img = images[imageSeq.frame];
+                if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                }
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                context.drawImage(img, 0, 0, canvas.width, canvas.height);
+            };
+        
+            const initialRender = () => {
+                if (images.length > 0 && canvas.isConnected) {
+                    if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+                         canvas.width = window.innerWidth;
+                         canvas.height = window.innerHeight;
+                    }
+                    context.drawImage(images[0], 0, 0, canvas.width, canvas.height);
+                }
+            };
+            window.addEventListener('resize', render);
+            return { canvas, imageSeq, images, render, initialRender };
+        }
+        
+        async function buildAnimationSection(sceneData) { 
+            const container = document.createElement('div'); 
+            container.className = 'pin-container h-screen'; 
+            mainContainer.appendChild(container); 
+            const timeline = gsap.timeline({ 
+                scrollTrigger: { 
+                    trigger: container, 
+                    pin: true, 
+                    start: "top top", 
+                    end: `+=${sceneData.scrollDuration || 3000}`, 
+                    scrub: 1,
+                } 
+            }); 
+            const panel = document.createElement('div'); 
+            panel.className = 'panel'; 
+            container.appendChild(panel); 
+            if (sceneData.__component === 'scenes.scene-video-scrub') { 
+                const videoData = getAttrs(sceneData.video); 
+                if (videoData) { 
+                    const video = document.createElement('video'); 
+                    video.className = 'media-background'; 
+                    video.src = `http://localhost:1337${videoData.url}`;
+                    video.muted = true; video.playsInline = true; video.preload = 'auto'; 
+                    panel.appendChild(video); 
+                    await new Promise(resolve => { video.onloadedmetadata = resolve; }); 
+                    timeline.to(video, { currentTime: video.duration || 0 }, 0); 
+                } 
+            } else if (sceneData.__component === 'scenes.scene-image-sequence') { 
+                const frameData = getAttrs(sceneData.frames) || []; 
+                 if (frameData.length > 0) {
+                    const seq = await createImageSequence(frameData);
+                    panel.appendChild(seq.canvas);
+                    requestAnimationFrame(seq.initialRender);
+                    timeline.to(seq.imageSeq, {
+                        frame: seq.images.length - 1,
+                        snap: "frame",
+                        ease: "none",
+                        onUpdate: seq.render
+                    }, 0);
+                }
+            } 
+            if (sceneData.overlayTexts?.length > 0) { 
+                const textContainer = document.createElement('div'); 
+                textContainer.className = 'overlay-text-container'; 
+                panel.appendChild(textContainer); 
+                sceneData.overlayTexts.forEach((textData) => { 
+                    const p = document.createElement('p'); 
+                    p.className = 'overlay-text font-heading text-5xl md:text-7xl text-center p-4'; 
+                    p.innerText = textData.text; 
+                    textContainer.appendChild(p); 
+                    timeline.to(p, { opacity: 1, y: 0 }, `${textData.startAt}%`).to(p, { opacity: 0, y: -20 }, `${textData.endAt}%`); 
+                }); 
+            } 
+        }
+
+/* ----- PLANTILLA CORREGIDA DE ANIMACIONES Y SCROLL ----- */
+const wordAnimationTemplates = {
+  'slide-in-from-right': (target) => {
+    // siempre aseguramos que visibility/autoAlpha se pongan correctamente al inicio
+    gsap.set(target, { visibility: 'visible' });
+    return gsap.fromTo(target,
+      { xPercent: 100, autoAlpha: 0 },
+      { xPercent: 0, autoAlpha: 1, ease: 'power3.out', duration: 0.9 }
+    );
+  },
+  'scale-in-from-big': (target) => {
+    gsap.set(target, { visibility: 'visible' });
+    return gsap.fromTo(target,
+      { scale: 8, autoAlpha: 0 },
+      { scale: 1, autoAlpha: 1, ease: 'power3.out', duration: 0.9 }
+    );
+  },
+  'hinge-from-top': (target) => {
+    gsap.set(target, { visibility: 'visible', transformPerspective: 800 });
+    return gsap.fromTo(target,
+      { rotationX: -90, autoAlpha: 0, transformOrigin: 'top center' },
+      { rotationX: 0, autoAlpha: 1, duration: 1.1, ease: 'elastic.out(1, 0.7)' }
+    );
+  },
+  'image-pop-above': (target, wordData) => {
+    const tl = gsap.timeline();
+    gsap.set(target, { visibility: 'visible' });
+    if (!wordData.decorative_image?.data) return tl.to(target, { autoAlpha: 1, duration: 0.2 });
+    const img = document.createElement('img');
+    img.className = 'animated-word-image';
+    const imgData = getAttrs(wordData.decorative_image.data);
+    if (!imgData?.url) return tl.to(target, { autoAlpha: 1, duration: 0.2 });
+    img.src = `http://localhost:1337${imgData.url}`;
+    target.appendChild(img);
+    gsap.set(img, { yPercent: -120, scale: 0, autoAlpha: 0 });
+    tl.to(target, { autoAlpha: 1, duration: 0.12 }) // asegurar visibilidad de la palabra
+      .to(img, { scale: 1, autoAlpha: 1, yPercent: -25, ease: 'back.out(1.7)', duration: 0.6 }, '<0.05');
+    return tl;
+  },
+  'nested-box-reveal': (target, wordData, parentEl) => {
+    const tl = gsap.timeline();
+    if (!parentEl) {
+      gsap.set(target, { visibility: 'visible' });
+      return gsap.to(target, { autoAlpha: 1, duration: 0.4 });
+    }
+    parentEl.appendChild(target);
+    gsap.set(target, {
+      top: '50%',
+      left: '100%',
+      yPercent: -50,
+      xPercent: 0,
+      visibility: 'visible',
+      backgroundColor: wordData.background_color || '#FFA500'
+    });
+    return gsap.to(target, { left: '50%', xPercent: -50, ease: 'power3.out', duration: 0.9 });
+  },
+  'typewriter': (target) => {
+    gsap.set(target, { visibility: 'visible', autoAlpha: 1 });
+    const textToType = (target.dataset.__fulltext ?? target.textContent) || target.textContent;
+    target.textContent = '';
+    // usar TextPlugin si está registrado
+    return gsap.to(target, { text: { value: textToType, ease: 'none' }, duration: Math.max(0.6, textToType.length * 0.06) });
+  }
+};
+
+function buildDynamicStorySection(scene) {
+  const wordsData = scene.animatedWords || [];
+  if (!wordsData || wordsData.length === 0) return;
+
+  const section = document.createElement('section');
+  section.id = 'dynamic-story-section';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'story-wrapper';
+  section.appendChild(wrapper);
+  mainContainer.appendChild(section);
+
+  // --- LÓGICA DE POSICIONAMIENTO CORREGIDA ---
+  // La lógica anterior apilaba las palabras si el CMS enviaba la misma posición para todas.
+  // Esta nueva versión las posiciona secuencialmente para asegurar el espaciado.
+  let cursorVW = 10; // Inicia la primera palabra a 10vw del borde.
+  const gapVW = 8;   // Espacio entre palabras (en vw).
+  const wordElements = [];
+
+  wordsData.forEach((word, index) => {
+    const wordEl = document.createElement('div');
+    wordEl.className = 'animated-word';
+    wordEl.textContent = word.text;
+    wordEl.dataset.__fulltext = word.text;
+
+    const bg = word.background_color || '#ffffff';
+    const textColor = (/transparent/i.test(bg) || !bg) ? '#ffffff' : '#0a0a0a';
+
+    gsap.set(wordEl, {
+      left: `${cursorVW}vw`, // Usa el cursor para la posición izquierda.
+      top: `${word.offset_y ?? 50}%`,
+      xPercent: -50, // Centra la palabra horizontalmente en el cursor.
+      yPercent: -50,
+      backgroundColor: bg,
+      color: textColor,
+      autoAlpha: 0,
+      visibility: 'hidden'
+    });
+
+    wrapper.appendChild(wordEl);
+    wordElements.push({ el: wordEl, data: word });
+
+    // Avanza el cursor para la siguiente palabra.
+    // Usamos una estimación del ancho de la palabra (15vw por defecto) más el espacio.
+    const wordWidthVW = word.widthVW || 15;
+    cursorVW += wordWidthVW + gapVW;
+  });
+  // --- FIN DE LA LÓGICA CORREGIDA ---
+
+  const totalWidthPx = Math.max(window.innerWidth * (cursorVW / 100), window.innerWidth + 1);
+
+  gsap.set(wrapper, { width: totalWidthPx + 'px' });
+
+  const horizontalScroll = gsap.to(wrapper, {
+    x: () => -(totalWidthPx - window.innerWidth),
+    ease: "none",
+    paused: true
+  });
+
+  ScrollTrigger.create({
+    trigger: section,
+    pin: true,
+    start: "top top",
+    end: () => `+=${totalWidthPx}`,
+    scrub: 1,
+    animation: horizontalScroll
+  });
+
+  wordElements.forEach(({ el, data }) => {
+    const animationType = data.animation || 'slide-in-from-right';
+    const animFunc = wordAnimationTemplates[animationType];
+
+    const st = ScrollTrigger.create({
+      trigger: el,
+      containerAnimation: horizontalScroll,
+      start: "left 60%",
+      end: "left 40%",
+      scrub: false,
+      onEnter: () => {
+        gsap.set(el, { visibility: 'visible' });
+      },
+      onEnterBack: () => {
+        gsap.set(el, { visibility: 'visible' });
+      }
+    });
+
+    let tl;
+    if (animFunc) {
+      tl = gsap.timeline({ defaults: { overwrite: true } });
+      tl.add(animFunc(el, data, wrapper));
+    } else {
+      tl = gsap.to(el, { autoAlpha: 1, duration: 0.6 });
+    }
+
+    ScrollTrigger.create({
+      trigger: el,
+      containerAnimation: horizontalScroll,
+      animation: tl,
+      start: "left 65%",
+      end: "left 45%",
+      scrub: 0.6,
+      invalidateOnRefresh: true
+    });
+  });
+
+  ScrollTrigger.refresh();
+  
+  window.addEventListener('resize', () => {
+    const newTotal = Math.max(window.innerWidth * (cursorVW / 100), window.innerWidth + 1);
+    gsap.set(wrapper, { width: newTotal + 'px' });
+    horizontalScroll.vars.x = () => -(newTotal - window.innerWidth);
+    ScrollTrigger.refresh();
+  });
+}        function buildReservationSection(scene) {
+            const section = document.createElement('section');
+            section.id = 'reservations';
+            section.className = 'min-h-screen bg-black py-20 flex flex-col items-center justify-center text-center relative z-20';
+            const content = `
+                <h2 class="font-heading text-6xl md:text-7xl mb-4">${scene.title || 'Reserva tu mesa'}</h2>
+                <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-12">${scene.subtitle || ''}</p>
+                <a href="${scene.reservationLink || '#'}" target="_blank" class="bg-white text-black font-bold py-4 px-10 rounded-full text-lg hover:bg-gray-200 transition-transform duration-300 transform hover:scale-105">
+                    ${scene.buttonText || 'Reservar Ahora'}
+                </a>
+                ${scene.phoneNumber ? `<div class="mt-16 text-gray-500"><p>O llámanos al: <span class="text-white">${scene.phoneNumber}</span></p></div>` : ''}
+            `;
+            section.innerHTML = content;
+            mainContainer.appendChild(section);
+            const title = section.querySelector('h2');
+            const splitTitle = new SplitText(title, { type: 'chars' });
+            gsap.from(splitTitle.chars, {
+                scrollTrigger: { trigger: title, start: "top 80%", toggleActions: "play none none reverse" },
+                duration: 0.8, opacity: 0, scale: 0, y: 80, rotationX: 180,
+                transformOrigin: "0% 50% -50", ease: "back", stagger: 0.05
+            });
+        }
+        
+        function buildFloatingIngredients(ingredientsData, menuContainer) {
+            if (!ingredientsData || ingredientsData.length === 0) return;
+
+            for (let i = 0; i < 10; i++) { 
+                const ing = ingredientsData[i % ingredientsData.length];
+                const ingUrl = `http://localhost:1337${getAttrs(ing).url}`;
+                const floatEl = document.createElement('div');
+                floatEl.className = 'floating-ingredient';
+                floatEl.style.backgroundImage = `url(${ingUrl})`;
+                menuContainer.appendChild(floatEl);
+
+                gsap.set(floatEl, { 
+                    x: gsap.utils.random(0, window.innerWidth), 
+                    y: gsap.utils.random(0, menuContainer.scrollHeight) 
+                });
+
+                gsap.to(floatEl, { 
+                    scrollTrigger: { 
+                        trigger: menuContainer, 
+                        start: "top bottom", 
+                        end: "bottom top", 
+                        scrub: 1.5 + Math.random() 
+                    }, 
+                    y: () => `-=${gsap.utils.random(300, 500)}`,
+                    x: () => `${gsap.utils.random() < 0.5 ? '-' : '+'}=${gsap.utils.random(200, 400)}`,
+                    rotation: gsap.utils.random(-360, 360), 
+                    ease: "none" 
+                }); 
+            }
+        }
+        
+        async function buildPage() { 
+            try { 
+                const populateQuery = 'populate[scenes][on][scenes.scene-history][populate][animatedWords][populate]=decorative_image&populate[scenes][on][scenes.scene-video-scrub][populate]=*&populate[scenes][on][scenes.scene-image-sequence][populate]=*&populate[scenes][on][scenes.scene-reservation-form][populate]=*&populate[scenes][on][scenes.scene-menu][populate][menuItems][populate]=*&populate[scenes][on][scenes.scene-menu][populate][floatingIngredients]=true'; 
+                const response = await fetch(`${API_URL}/cinematic-homepage?${populateQuery}`); 
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const pageData = await response.json(); 
+                const scenes = getAttrs(pageData.data)?.scenes; 
+                if (!scenes || scenes.length === 0) throw new Error("Contenido de escenas no encontrado."); 
+                
+                for (const scene of scenes) { 
+                    switch (scene.__component) {
+                        case 'scenes.scene-video-scrub':
+                        case 'scenes.scene-image-sequence':
+                            await buildAnimationSection(scene); 
+                            break;
+                        case 'scenes.scene-history': 
+                            buildDynamicStorySection(scene); 
+                            break;
+                        case 'scenes.scene-reservation-form': 
+                            buildReservationSection(scene);
+                            break;
+                        case 'scenes.scene-menu':
+                            const titleDiv = document.createElement('div');
+                            titleDiv.id = "menu-title-section";
+                            titleDiv.className = "h-screen flex flex-col justify-center items-center text-center relative z-10";
+                            titleDiv.innerHTML = `<h2 class="font-heading text-7xl">${scene.title}</h2><p class="mt-4 text-xl text-gray-400">Sigue bajando para descubrir</p>`;
+                            mainContainer.appendChild(titleDiv);
+                            
+                            const floatingIngredientsData = scene.floatingIngredients || [];
+                            if (floatingIngredientsData.length > 0) {
+                                buildFloatingIngredients(floatingIngredientsData, titleDiv);
+                            }
+                            
+                            const menuItems = getAttrs(scene.menuItems) || [];
+                            for (const [index, item] of menuItems.entries()) {
+                                await buildMenuItemAsScene(item, index === 0);
+                            }
+                            break;
+                    }
+                } 
+            } catch (error) { 
+                console.error('Error al construir la página:', error); 
+                mainContainer.innerHTML = `<div class="h-screen flex items-center justify-center text-center p-4"><h1>Error al cargar el contenido.</h1><p class="text-gray-400 mt-2">${error.message}</p></div>`; 
+            } finally { 
+                gsap.to(document.getElementById('loader'), { opacity: 0, duration: 0.5, onComplete: () => document.getElementById('loader').style.display = 'none' }); 
+            } 
+        } 
+        
+        async function buildMenuItemAsScene(itemData, isFirstItem) {
+            const container = document.createElement('div');
+            container.className = 'pin-container h-screen relative overflow-hidden';
+            mainContainer.appendChild(container);
+            
+            if (isFirstItem) {
+                const titleDiv = document.getElementById('menu-title-section');
+                gsap.to(titleDiv, {
+                    autoAlpha: 0,
+                    scale: 0.8,
+                    scrollTrigger: {
+                        trigger: container,
+                        start: "top bottom",
+                        end: "top center",
+                        scrub: true,
+                    }
+                });
+            }
+
+            const timeline = gsap.timeline();
+
+            ScrollTrigger.create({
+                trigger: container,
+                animation: timeline,
+                start: "top center",
+                end: () => `+=${window.innerHeight / 2 + (itemData.scrollDuration || 1500)}`,
+                scrub: 1,
+            });
+
+            ScrollTrigger.create({
+                trigger: container,
+                pin: true,
+                start: "top top",
+                end: `+=${itemData.scrollDuration || 1500}`
+            });
+
+
+            const panel = document.createElement('div');
+            panel.className = 'panel';
+            container.appendChild(panel);
+            
+            const frameData = getAttrs(itemData.mediaSequence);
+            const mediaData = getAttrs(itemData.media);
+            
+            const TOTAL_ANIMATION_DURATION = 10; 
+            
+            if (frameData && frameData.length > 0) {
+                const seq = await createImageSequence(frameData);
+                panel.appendChild(seq.canvas);
+                requestAnimationFrame(seq.initialRender);
+                timeline.to(seq.imageSeq, {
+                    frame: seq.images.length - 1, 
+                    snap: "frame", 
+                    ease: "none", 
+                    onUpdate: seq.render,
+                    duration: TOTAL_ANIMATION_DURATION
+                }, 0); 
+            } else if (mediaData) {
+                const mediaUrl = `http://localhost:1337${mediaData.url}`;
+                panel.innerHTML = `<div style="background-image: url(${mediaUrl})" class="media-background bg-cover bg-center"></div>`;
+            }
+
+            const textContainerHTML = `
+                <div class="text-wrapper absolute inset-0 flex justify-center items-center">
+                    <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+                    <div class="relative z-10 p-8 w-full max-w-4xl mx-auto text-left">
+                        <h3 class="dish-name font-heading text-6xl md:text-8xl">${itemData.name}</h3>
+                        <p class="dish-price text-4xl mt-4">${itemData.price}</p>
+                        <div class="dish-ingredients text-xl mt-8 flex flex-wrap gap-x-4 gap-y-2">
+                            ${(itemData.description || '').split(',').map(ing => `<span class="ingredient-word">${ing.trim()}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>`;
+            panel.insertAdjacentHTML('beforeend', textContainerHTML);
+
+            const textWrapper = panel.querySelector('.text-wrapper');
+            const dishName = panel.querySelector('.dish-name');
+            const splitDishName = new SplitText(dishName, { type: 'chars' });
+            const price = panel.querySelector('.dish-price');
+            const ingredients = panel.querySelectorAll('.ingredient-word');
+
+            gsap.set(textWrapper, { autoAlpha: 0 });
+
+            const textAnimationStartPoint = 0; 
+            const textAnimationEndPoint = 0.9;
+            const textDuration = TOTAL_ANIMATION_DURATION * textAnimationEndPoint;
+
+            timeline.to(textWrapper, { autoAlpha: 1, duration: 0.3 }, textAnimationStartPoint)
+                .from(splitDishName.chars, {
+                    opacity: 0, scale: 0, y: 80, rotationX: 180,
+                    transformOrigin: "0% 50% -50", ease: "back",
+                    stagger: {
+                        amount: textDuration * 0.5,
+                        from: "start"
+                    }
+                }, textAnimationStartPoint)
+                .from(price, {
+                    y: 50, opacity: 0,
+                    duration: textDuration * 0.3
+                }, textAnimationStartPoint + (textDuration * 0.3))
+                .from(ingredients, {
+                    y: 30, opacity: 0,
+                    stagger: {
+                        amount: textDuration * 0.4,
+                        from: "start"
+                    }
+                }, textAnimationStartPoint + (textDuration * 0.5));
+        }
+        
+        await loadGlobalSettings(); 
+        await buildPage(); 
+
+        const smoother = ScrollSmoother.create({
+            wrapper: "#smooth-wrapper",
+            content: "#smooth-content",
+            smooth: 1.5,
+            effects: true,
+        });
+
+        document.querySelectorAll('a[data-scroll-to]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const finalTarget = targetId === '#menu-section' ? '#menu-title-section' : targetId;
+                smoother.scrollTo(finalTarget, true, "top top");
+            });
+        });
+    }); 
+    </script> 
+</body> 
+</html>
+
